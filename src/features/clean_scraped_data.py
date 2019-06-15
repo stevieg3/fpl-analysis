@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
+import os
 
 
 def clean_raw_scraped_data(raw_data_path, write_to_csv=False, new_csv_name=None):
@@ -12,7 +13,10 @@ def clean_raw_scraped_data(raw_data_path, write_to_csv=False, new_csv_name=None)
     :param new_csv_name: Use if write_to_csv = True. Name of formatted file
     :return: None or formatted DataFrame
     """
-    raw_df = pd.read_excel(raw_data_path)
+    try:
+        raw_df = pd.read_excel(raw_data_path)
+    except:
+        raw_df = pd.read_csv(raw_data_path)
     
     # Format column names
     old_columns = list(raw_df.columns)
@@ -39,3 +43,16 @@ def clean_raw_scraped_data(raw_data_path, write_to_csv=False, new_csv_name=None)
         raw_df.to_csv('data/interim/{}.csv'.format(new_csv_name), index=False)
     else:
         return raw_df
+
+
+def main():
+    os.chdir('../..')
+    clean_raw_scraped_data('data/raw/FPL 2017:18 player stats.xlsx',
+                           write_to_csv=True, new_csv_name='clean_scraped_2017_18')
+
+    clean_raw_scraped_data('data/raw/2018_19_current_season_data.csv',
+                           write_to_csv=True, new_csv_name='clean_scraped_2018_19')
+
+
+if __name__ == "__main__":
+    main()
