@@ -3,6 +3,8 @@ import numpy as np
 import re
 import os
 
+from src.features.utils import fpl_name_map
+
 
 def clean_raw_scraped_data(raw_data_path, write_to_csv=False, new_csv_name=None):
     """
@@ -38,6 +40,9 @@ def clean_raw_scraped_data(raw_data_path, write_to_csv=False, new_csv_name=None)
 
     # Format pound values
     raw_df['£ Value'] = raw_df['£ Value'].apply(lambda x: float(x[1:]))
+
+    # Rename columns
+    raw_df.rename(columns=fpl_name_map, inplace=True)
 
     if write_to_csv:
         raw_df.to_csv('data/interim/{}.csv'.format(new_csv_name), index=False)
