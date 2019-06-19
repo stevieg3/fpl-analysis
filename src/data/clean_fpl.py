@@ -49,6 +49,11 @@ def add_positions(gameweek_df, player_df):
         .drop_duplicates(subset="clean_name")
         .merge(gameweek_df, how="inner")
     )
+
+    gameweek_df["season_num"] = gameweek_df.season.map(
+        {"2016-17": 1, "2017-18": 2, "2018-19": 3}
+    )
+
     gameweek_df["position"] = player_df.pos
     gameweek_df = pd.get_dummies(gameweek_df, columns=["position"])
     return gameweek_df
