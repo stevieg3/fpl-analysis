@@ -3,6 +3,7 @@
 *.pyc
 *.xlsx
 *.pkl
+*.pickle
 *.csv
 *.json
 
