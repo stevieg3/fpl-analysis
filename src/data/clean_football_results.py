@@ -31,7 +31,9 @@ def main():
     combined_df["result_val"] = combined_df.FTR.map({"H": 1, "A": 0, "D": 0.5})
     combined_df["goal_difference"] = combined_df.FTHG - combined_df.FTAG
     combined_df["expit_goal_difference"] = expit(combined_df.goal_difference)
-    combined_df.to_pickle(OUTPUT_DATA_PATH + "/football_results.pkl")
+    combined_df.sort_values(by="Date").to_pickle(
+        OUTPUT_DATA_PATH + "/football_results.pkl"
+    )
 
 
 if __name__ == "__main__":
