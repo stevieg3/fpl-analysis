@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+from scipy.special import logit
 
 # add files from this repo to external file in data directory called 'FantasyPremierLeague
 
@@ -22,6 +23,14 @@ def main():
         season_df = pd.read_csv(f_path, parse_dates=["Date"], dayfirst=True)
         combined_df = combined_df.append(season_df, sort=True)
 
+    # some nulls - removing
+    combined_df = combined_df.loc[combined_df.HomeTeam.notna(), :]
+
+    # adding result and goal difference info
+    assert combined_df.FTR.isna().mean() == 0
+    combined_df["result_val"] = combined_df.FTR.map({"H": 1, "A": 0, "D": 0.5})
+    combined_df["goal_difference"] = combined_df.FTHG - combined_df.FTAG
+    combined_df["logit_goal_difference"] = logit(combined_df.goal_difference)
     combined_df.to_pickle(OUTPUT_DATA_PATH + "/football_results.pkl")
 
 
