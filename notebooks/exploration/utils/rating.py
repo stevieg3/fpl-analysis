@@ -11,8 +11,23 @@ import numpy as np
 import trueskill
 from scipy.stats import norm as sc_norm
 
+"""
+This module contains classes that can assign ratings to players, 
+given a Pandas dataframe containing fixtures, and outcomes.
+
+All rely on the base-class Rater, which has a method process_all_fixtures returning the 
+fixtures list with added ratings, as well as a dictionary with the ratings.
+
+Each specific rating class needs to impliment the _process_fixture, and _win_probability methods
+"""
+
 
 class Rater:
+    """
+     Abstract base class to share common method for applying rating 
+     algorithm to dataframe of fixtures.
+    """
+
     def __init__(
         self,
         fixtures,
@@ -23,6 +38,25 @@ class Rater:
         rater_name="",
         hyperparams={},
     ):
+        """
+        Args:
+            fixtures (dataframe): A dataframe of fixtures between players
+            target (string): Column in the fixtures dataframe that contains the target,
+                            column values must be between 0-1
+                lines are supported.
+            player_1 (string):Column in the fixtures dataframe that contains the first players'
+                                name. Column values must be string
+
+            player_2 (string):Column in the fixtures dataframe that contains the second players'
+                    name. Column values must be string
+
+            initial_ratings (dictionary): Any initial ratings of the players. Must be dictionary
+                                            with key = player name and value = rating
+
+            rater_name (string): prefix to be added to ratings columns after fixtured processed
+
+            hyperparams (dictionary): any hyperparameters used by the rater
+        """
         self.fixtures = fixtures
         self.target = target
         self._create_ratings(initial_ratings)
@@ -32,6 +66,14 @@ class Rater:
         self.player_2 = player_2
 
     def _record_expectation(self, i, fixture):
+        """
+        Updates fixtures dataframe with information on rating of players, and 
+        expectation of first player winning
+
+        Args:
+            i: Index of fixture in fixtures dataframe
+            fixture: Fixtures' values
+        """
         rating_1, rating_2, score_1, score_2 = self._get_player_ratings(fixture)
         self.fixtures.at[i, f"{self.rater_name}_rating_1"] = score_1
         self.fixtures.at[i, f"{self.rater_name}_rating_2"] = score_2
@@ -41,6 +83,13 @@ class Rater:
         )
 
     def process_all_fixtures(self):
+        """
+        Processes all fixtures, adding rating information
+
+        Returns:
+            fixtures: dataframe containing rating information
+            ratings: dictionary with latest ratings of players
+        """
         for i, f in self.fixtures.iterrows():
             if not math.isnan(f[self.target]):
                 self._record_expectation(i, f)
@@ -49,27 +98,60 @@ class Rater:
         return self.fixtures, self.ratings
 
     def _create_ratings(self, initial_ratings):
+        """
+        Creates ratings, using initial_ratings
+
+        Args:
+            initial_ratings: dictionary of players' starting ratings
+        """
         self.ratings = defaultdict(lambda: 1200)
         self.ratings.update(initial_ratings)
 
     def _get_player_ratings(self, fixture):
+        """
+        Gets the ratings of players from fixture
+
+        Args:
+           fixture: the fixture being analysed
+
+        Returns:
+            rating_1: numeric
+            rating_2: numeric
+            rating_1: numeric
+            rating_2: numeric
+
+        The repetition is slightly hacky, because Trueskill has 'rating' objects, and we want to 
+        return the mean values. There might be a better way.
+        """
         rating_1 = self.ratings[fixture[self.player_1]]
         rating_2 = self.ratings[fixture[self.player_2]]
         return rating_1, rating_2, rating_1, rating_2
 
     def _process_fixture(self, fixture):
+        """
+        needs to be implemented by specific rating class
+        
+        needs to update self.ratings
+        self.ratings[fixture.player_1] = rating_1
+        self.ratings[fixture.player_2] = rating_2
+        """
         pass
-        # needs to be implemented by specific rating class
-        # self.ratings[fixture.player_1] = rating_1
-        # self.ratings[fixture.player_2] = rating_2
 
     def _win_probability(self, player_1, player_2):
+        """
+        needs to be implemented by specific rating class
+        return player_1_winning_prob
+        """
         pass
-        # needs to be implemented by specific rating class
-        # return player_1_winning_prob
 
 
 class TrueSkill(Rater):
+    """
+    Trueskill rating algorithm:
+
+    https://trueskill.org/
+    """
+
     def _create_ratings(self, initial_ratings):
         self.ratings = defaultdict(lambda: trueskill.Rating())
         self.ratings.update(initial_ratings)
@@ -97,6 +179,11 @@ class TrueSkill(Rater):
 
 
 class HeadToHead(Rater):
+    """
+    Head to head rating algorithm - i.e. just recording two opponents outcomes in previous 
+    encounters
+    """
+
     def _create_ratings(self, initial_ratings):
         ratings = {}
         unique_players = np.unique(self.fixtures[[self.player_1, self.player_2]].values)
@@ -129,6 +216,12 @@ class HeadToHead(Rater):
 
 
 class ELO(Rater):
+    """
+    Elo rating algorithm
+
+    https://en.wikipedia.org/wiki/Elo_rating_system
+    """
+
     def _process_fixture(self, fixture):
         rating_1, rating_2, _, _ = self._get_player_ratings(fixture)
         win_prob = self._win_probability(rating_1, rating_2)
