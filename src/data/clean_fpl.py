@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-# add files from this repo to external file in data directory called 'FantasyPremierLeague
+# add files from this repo to external file in data directory called 'FantasyPremierLeague'
 
 # this script concatenates gameweek-level stats, as well as merging on player positions from the aggregated 'players_raw' files
 
