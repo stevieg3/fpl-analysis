@@ -47,9 +47,9 @@ def add_position_and_team_num(gameweek_df, player_df):
     )
 
     gameweek_df = (
-        player_df[["clean_name", "pos", "team",'season']]
-        .drop_duplicates(subset=["clean_name",'season'])
-        .merge(gameweek_df, how="inner",on=['clean_name','season'])
+        player_df[["clean_name", "pos", "team", "season"]]
+        .drop_duplicates(subset=["clean_name", "season"])
+        .merge(gameweek_df, how="inner", on=["clean_name", "season"])
     )
 
     gameweek_df["season_num"] = gameweek_df.season.map(
@@ -82,8 +82,8 @@ def add_team_names(df, team_number_df):
 def main():
     print("starting cleaning")
     gameweek_df, player_df = load_data(seasons=SEASONS)
-    gameweek_df.to_pickle(RAW_DATA_PATH + '/gameweek_data.pkl')
-    player_df.to_pickle(RAW_DATA_PATH + '/player_data.pkl')
+    gameweek_df.to_pickle(RAW_DATA_PATH + "/gameweek_data.pkl")
+    player_df.to_pickle(RAW_DATA_PATH + "/player_data.pkl")
     gameweek_with_player_info = add_position_and_team_num(gameweek_df, player_df)
     team_number_df = pd.read_csv(TEAM_NUMBER_PATH)
     gameweek_with_team_names = add_team_names(gameweek_with_player_info, team_number_df)
