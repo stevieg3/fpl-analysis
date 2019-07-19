@@ -10,6 +10,8 @@ SEASONS = ["2016-17", "2017-18", "2018-19"]
 SOURCE_DATA_PATH = "../../data/external/FantasyPremierLeague/"
 
 OUTPUT_DATA_PATH = "../../data/processed"
+RAW_DATA_PATH = "../../data/raw"
+TEAM_NUMBER_PATH = "../../data/external/FantasyPremierLeague/team_numbers.csv"
 
 
 def load_data(seasons):
@@ -33,7 +35,7 @@ def load_data(seasons):
     return gameweek_df.reset_index(drop=True), player_df.reset_index(drop=True)
 
 
-def add_positions(gameweek_df, player_df):
+def add_position_and_team_num(gameweek_df, player_df):
     gameweek_df["clean_name"] = gameweek_df.name.str.replace(r"_(\d+)", "")
     player_df["clean_name"] = player_df.first_name + "_" + player_df.second_name
 
@@ -45,9 +47,9 @@ def add_positions(gameweek_df, player_df):
     )
 
     gameweek_df = (
-        player_df[["clean_name", "pos"]]
-        .drop_duplicates(subset="clean_name")
-        .merge(gameweek_df, how="inner")
+        player_df[["clean_name", "pos", "team",'season']]
+        .drop_duplicates(subset=["clean_name",'season'])
+        .merge(gameweek_df, how="inner",on=['clean_name','season'])
     )
 
     gameweek_df["season_num"] = gameweek_df.season.map(
@@ -59,11 +61,34 @@ def add_positions(gameweek_df, player_df):
     return gameweek_df
 
 
+def add_team_names(df, team_number_df):
+    """
+    I think this might fail for jan transfers
+    """
+    own_teams = df.rename(columns={"team": "team_number"}).merge(
+        team_number_df, on=["season", "team_number"]
+    )
+    opp_team_number_df = team_number_df.rename(
+        columns={"team": "opponent_team", "team_number": "opp_team_number"}
+    )
+    opp_teams = own_teams.rename(columns={"opponent_team": "opp_team_number"}).merge(
+        opp_team_number_df, on=["season", "opp_team_number"]
+    )
+    # check nothing dropped
+    assert df.shape[0] == opp_teams.shape[0]
+    return opp_teams
+
+
 def main():
     print("starting cleaning")
     gameweek_df, player_df = load_data(seasons=SEASONS)
-    gameweek_with_positions_df = add_positions(gameweek_df, player_df)
-    gameweek_with_positions_df.to_pickle(OUTPUT_DATA_PATH + "/gameweek_data.pkl")
+    gameweek_df.to_pickle(RAW_DATA_PATH + '/gameweek_data.pkl')
+    player_df.to_pickle(RAW_DATA_PATH + '/player_data.pkl')
+    gameweek_with_player_info = add_position_and_team_num(gameweek_df, player_df)
+    team_number_df = pd.read_csv(TEAM_NUMBER_PATH)
+    gameweek_with_team_names = add_team_names(gameweek_with_player_info, team_number_df)
+    gameweek_with_team_names.to_pickle(OUTPUT_DATA_PATH + "/gameweek_data.pkl")
+    player_df.to_pickle(OUTPUT_DATA_PATH + "/player_data.pkl")
     print("done")
 
 

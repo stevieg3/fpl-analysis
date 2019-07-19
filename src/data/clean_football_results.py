@@ -13,6 +13,23 @@ SOURCE_DATA_PATH = "../../data/external/FootballResults/"
 
 OUTPUT_DATA_PATH = "../../data/processed"
 
+NAME_CHANGES = [
+    ("Man City", "Manchester City"),
+    ("Hull", "Hull City"),
+    ("West Ham", "West Ham United"),
+    ("West Brom", "West Bromwich Albion"),
+    ("Leicester", "Leicester City"),
+    ("Stoke", "Stoke City"),
+    ("Man United", "Manchester United"),
+    ("Swansea", "Swansea City"),
+    ("Tottenham", "Tottenham Hotspur"),
+    ("Brighton", "Brighton & Hove Albion"),
+    ("Newcastle", "Newcastle United"),
+    ("Huddersfield", "Huddersfield Town"),
+    ("Cardiff", "Cardiff City"),
+    ("Wolves", "Wolverhampton Wanderers"),
+]
+
 
 def main():
     file_names = os.listdir(SOURCE_DATA_PATH)
@@ -31,6 +48,12 @@ def main():
     combined_df["result_val"] = combined_df.FTR.map({"H": 1, "A": 0, "D": 0.5})
     combined_df["goal_difference"] = combined_df.FTHG - combined_df.FTAG
     combined_df["expit_goal_difference"] = expit(combined_df.goal_difference)
+
+    # renaming
+    for _from, _to in NAME_CHANGES:
+        combined_df.loc[combined_df.HomeTeam == _from, "HomeTeam"] = _to
+        combined_df.loc[combined_df.AwayTeam == _from, "AwayTeam"] = _to
+
     combined_df.sort_values(by="Date").to_pickle(
         OUTPUT_DATA_PATH + "/football_results.pkl"
     )
