@@ -7,11 +7,11 @@ import numpy as np
 
 SEASONS = ["2016-17", "2017-18", "2018-19"]
 
-SOURCE_DATA_PATH = "../../data/external/FantasyPremierLeague/"
+SOURCE_DATA_PATH = "../../data/external/Fantasy-Premier-League/data/"
 
 OUTPUT_DATA_PATH = "../../data/processed"
 RAW_DATA_PATH = "../../data/raw"
-TEAM_NUMBER_PATH = "../../data/external/FantasyPremierLeague/team_numbers.csv"
+TEAM_NUMBER_PATH = "../../data/external/team_numbers.csv"
 
 
 def load_data(seasons):
