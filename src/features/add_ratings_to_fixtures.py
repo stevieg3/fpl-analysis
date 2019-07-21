@@ -5,7 +5,7 @@ PLAYERS = "../../data/raw/cleaned_players.pkl"
 FIXTURES = "../../data/raw/fixtures.pkl"
 TEAM_NUMBERS = "../../data/external/team_numbers.csv"
 RATINGS = "../../data/processed/ratings_latest.pkl"
-FIXTURES_WITH_RATINGS = "../../data/processed/ratings_latest.pkl"
+FIXTURES_WITH_RATINGS = "../../data/processed/fixtures_with_ratings_latest.pkl"
 
 
 def add_ratings(players, fixtures, team_numbers, ratings):
@@ -35,19 +35,35 @@ def add_ratings(players, fixtures, team_numbers, ratings):
         ratings
     )
 
-    fixtures_away_name["elo_outcome_rating_diff"] = (
-        fixtures_away_name.elo_outcome_rating_1
-        - fixtures_away_name.elo_outcome_rating_2
+    fixtures_home = fixtures_away_name.drop(columns=["team_a", "team_h"]).rename(
+        columns={"home_team": "team", "away_team": "opp_team", "event": "gw"}
     )
 
-    fixtures_away_name["elo_outcome_rating_e"] = (
-        10 ** (fixtures_away_name["elo_outcome_rating_1"] / 400)
+    fixtures_away = fixtures_home.copy().rename(
+        columns={
+            "opp_team": "team",
+            "team": "opp_team",
+            "elo_outcome_rating_1": "elo_outcome_rating_2",
+            "elo_outcome_rating_2": "elo_outcome_rating_1",
+        }
+    )
+
+    fixtures_home["is_home"] = True
+    fixtures_away["is_home"] = False
+
+    comb_fixtures = fixtures_home.append(fixtures_away, sort=True)
+
+    comb_fixtures["elo_outcome_rating_diff"] = (
+        comb_fixtures.elo_outcome_rating_1 - comb_fixtures.elo_outcome_rating_2
+    )
+
+    comb_fixtures["elo_outcome_rating_e"] = (
+        10 ** (comb_fixtures["elo_outcome_rating_1"] / 400)
     ) / (
-        (10 ** (fixtures_away_name["elo_outcome_rating_1"] / 400))
-        + (10 ** (fixtures_away_name["elo_outcome_rating_2"] / 400))
+        (10 ** (comb_fixtures["elo_outcome_rating_1"] / 400))
+        + (10 ** (comb_fixtures["elo_outcome_rating_2"] / 400))
     )
-
-    return fixtures_away_name
+    return comb_fixtures
 
 
 def main():

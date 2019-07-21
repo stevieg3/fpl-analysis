@@ -8,12 +8,11 @@ RAW_OUTPUT_PATH = "../../data/raw/"
 
 
 def main():
-    player_df = pd.read_csv(
-        FPL_2019_PATH + "cleaned_players.csv")
+    player_df = pd.read_csv(FPL_2019_PATH + "cleaned_players.csv")
 
     fixtures_df = pd.read_csv(FPL_2019_PATH + "fixtures.csv")
 
-    player_df.to_pickle(RAW_OUTPUT_PATH + "cleaned_players.pkl")
+    player_df.to_pickle(RAW_OUTPUT_PATH + "cleaned_players_latest.pkl")
 
     fixtures_df.to_pickle(RAW_OUTPUT_PATH + "fixtures.pkl")
 
