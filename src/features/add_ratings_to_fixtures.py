@@ -1,11 +1,35 @@
 import pandas as pd
 import numpy as np
+import pickle
 
 PLAYERS = "../../data/raw/cleaned_players.pkl"
 FIXTURES = "../../data/raw/fixtures.pkl"
 TEAM_NUMBERS = "../../data/external/team_numbers.csv"
-RATINGS = "../../data/processed/ratings_latest.pkl"
+RATINGS = ["match_outcome", "exp_goal_diff"]
 FIXTURES_WITH_RATINGS = "../../data/processed/fixtures_with_ratings_latest.pkl"
+COLUMN_MAPPING = {
+    "opp_team": "team",
+    "team": "opp_team",
+    "match_outcome_rating_1": "match_outcome_rating_2",
+    "match_outcome_rating_2": "match_outcome_rating_1",
+    "exp_goal_diff_rating_1": "exp_goal_diff_rating_2",
+    "exp_goal_diff_rating_2": "exp_goal_diff_rating_1",
+}
+
+
+def elo_calculations(comb_fixtures, variable):
+    comb_fixtures[f"{variable}_rating_diff"] = (
+        comb_fixtures[f"{variable}_rating_1"] - comb_fixtures[f"{variable}_rating_2"]
+    )
+
+    comb_fixtures[f"{variable}_e"] = (
+        10 ** (comb_fixtures[f"{variable}_rating_1"] / 400)
+    ) / (
+        (10 ** (comb_fixtures[f"{variable}_rating_1"] / 400))
+        + (10 ** (comb_fixtures[f"{variable}_rating_2"] / 400))
+    )
+
+    return comb_fixtures
 
 
 def add_ratings(players, fixtures, team_numbers, ratings):
@@ -27,42 +51,30 @@ def add_ratings(players, fixtures, team_numbers, ratings):
         .sort_values(by="event")
     )
 
-    fixtures_away_name["elo_outcome_rating_1"] = fixtures_away_name.home_team.map(
-        ratings
-    )
+    for v in ratings:
+        with open(f"../../data/processed/ratings_{v}.pkl", "rb") as handle:
+            ratings_dict = pickle.load(handle)
 
-    fixtures_away_name["elo_outcome_rating_2"] = fixtures_away_name.away_team.map(
-        ratings
-    )
+        fixtures_away_name[f"{v}_rating_1"] = fixtures_away_name.home_team.map(
+            ratings_dict
+        )
+
+        fixtures_away_name[f"{v}_rating_2"] = fixtures_away_name.away_team.map(
+            ratings_dict
+        )
+        fixtures_away_name = elo_calculations(fixtures_away_name, v)
 
     fixtures_home = fixtures_away_name.drop(columns=["team_a", "team_h"]).rename(
         columns={"home_team": "team", "away_team": "opp_team", "event": "gw"}
     )
 
-    fixtures_away = fixtures_home.copy().rename(
-        columns={
-            "opp_team": "team",
-            "team": "opp_team",
-            "elo_outcome_rating_1": "elo_outcome_rating_2",
-            "elo_outcome_rating_2": "elo_outcome_rating_1",
-        }
-    )
+    fixtures_away = fixtures_home.copy().rename(columns=COLUMN_MAPPING)
 
     fixtures_home["is_home"] = True
     fixtures_away["is_home"] = False
 
     comb_fixtures = fixtures_home.append(fixtures_away, sort=True)
 
-    comb_fixtures["elo_outcome_rating_diff"] = (
-        comb_fixtures.elo_outcome_rating_1 - comb_fixtures.elo_outcome_rating_2
-    )
-
-    comb_fixtures["elo_outcome_rating_e"] = (
-        10 ** (comb_fixtures["elo_outcome_rating_1"] / 400)
-    ) / (
-        (10 ** (comb_fixtures["elo_outcome_rating_1"] / 400))
-        + (10 ** (comb_fixtures["elo_outcome_rating_2"] / 400))
-    )
     return comb_fixtures
 
 
@@ -71,9 +83,8 @@ def main():
 
     fixtures = pd.read_pickle(FIXTURES)
     team_numbers = pd.read_csv(TEAM_NUMBERS)
-    ratings = pd.read_pickle(RATINGS)
 
-    fixtures_with_ratings = add_ratings(players, fixtures, team_numbers, ratings)
+    fixtures_with_ratings = add_ratings(players, fixtures, team_numbers, RATINGS)
 
     fixtures_with_ratings.to_pickle(FIXTURES_WITH_RATINGS)
 

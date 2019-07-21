@@ -48,40 +48,53 @@ def rated_cleaning(rated, column_mapping):
     return rated.rename(columns=column_mapping)
 
 
+def map_ratings_from_home_away_to_indavidual(gameweek_df, variable):
+
+    gameweek_df[f"{variable}_rating_1_temp"] = np.where(
+        gameweek_df.was_home,
+        gameweek_df[f"{variable}_rating_1"],
+        gameweek_df[f"{variable}_rating_1"],
+    )
+
+    gameweek_df[f"{variable}_rating_2"] = np.where(
+        gameweek_df.was_home,
+        gameweek_df[f"{variable}_rating_2"],
+        gameweek_df[f"{variable}_rating_2"],
+    )
+
+    gameweek_df[f"{variable}_rating_1"] = gameweek_df[f"{variable}_rating_1_temp"]
+
+    gameweek_df[f"{variable}_rating_diff"] = np.where(
+        gameweek_df.was_home,
+        gameweek_df[f"{variable}_rating_diff"],
+        gameweek_df[f"{variable}_rating_diff"] * -1,
+    )
+
+    gameweek_df[f"{variable}_e"] = np.where(
+        gameweek_df.was_home,
+        gameweek_df[f"{variable}_e"],
+        1.0 - gameweek_df[f"{variable}_e"],
+    )
+
+    return gameweek_df
+
+
 def main():
     gameweek_df = gameweek_cleaning(pd.read_pickle(INPUT_GAMEWEEK_PATH))
     rated_df = rated_cleaning(pd.read_pickle(INPUT_FIXTURES_PATH), RATED_COLUMN_MAPPING)
 
     gameweek_with_elo = pd.merge_asof(
         gameweek_df.sort_values(by="Date"),
-        rated_df,
+        rated_df.sort_values(by="Date"),
         by=["home_team", "away_team", "team_h_score", "team_a_score"],
         on="Date",
         direction="nearest",
     )
-    gameweek_with_elo["elo_outcome_rating_p"] = np.where(
-        gameweek_with_elo.was_home,
-        gameweek_with_elo.elo_outcome_rating_1,
-        gameweek_with_elo.elo_outcome_rating_2,
-    )
 
-    gameweek_with_elo["elo_outcome_rating_o"] = np.where(
-        gameweek_with_elo.was_home,
-        gameweek_with_elo.elo_outcome_rating_2,
-        gameweek_with_elo.elo_outcome_rating_1,
-    )
-
-    gameweek_with_elo["elo_outcome_rating_d"] = np.where(
-        gameweek_with_elo.was_home,
-        gameweek_with_elo.elo_outcome_rating_diff,
-        gameweek_with_elo.elo_outcome_rating_diff * -1,
-    )
-
-    gameweek_with_elo["elo_outcome_rating_ex"] = np.where(
-        gameweek_with_elo.was_home,
-        gameweek_with_elo.elo_outcome_e,
-        1.0 - gameweek_with_elo.elo_outcome_e,
-    )
+    for v in ["match_outcome", "exp_goal_diff"]:
+        gameweek_with_elo = map_ratings_from_home_away_to_indavidual(
+            gameweek_with_elo, v
+        )
 
     gameweek_with_elo.to_pickle(OUTPUT_PATH)
 
