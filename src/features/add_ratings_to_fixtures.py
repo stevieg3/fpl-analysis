@@ -34,7 +34,7 @@ def elo_calculations(comb_fixtures, variable):
 
 def add_ratings(players, fixtures, team_numbers, ratings):
     team_numbers = team_numbers.loc[
-        team_numbers.season == "2018-19", ["team", "team_number"]
+        team_numbers.season == "2019-20", ["team", "team_number"]
     ]
 
     fixtures_home_name = (
