@@ -1,3 +1,4 @@
+# TODO Can be deleted with scraper stuff
 fpl_name_map = {
     "GW Gameweek": "gameweek",
     "Pts": "points",
