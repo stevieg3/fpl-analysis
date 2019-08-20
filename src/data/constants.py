@@ -33,3 +33,6 @@ VALUE_MULTIPLE = 10
 """
 Scalar difference between player value in raw data and on website
 """
+
+TEAM_SEASON_DATA = 'data/external/team_season_data.csv'
+# TODO Add docstring

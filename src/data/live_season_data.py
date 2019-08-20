@@ -14,7 +14,8 @@ import urllib.request
 
 from src.data.constants import \
     POSITION_MAP, \
-    VALUE_MULTIPLE
+    VALUE_MULTIPLE, \
+    TEAM_SEASON_DATA
 
 # TODO Move to constants
 BOOTSTRAP_STATIC_URL = "https://fantasy.premierleague.com/api/bootstrap-static/"
@@ -30,7 +31,6 @@ COLUMNS_TO_DROP = [
     'team'
 ]
 
-# TODO Potentially make into a class with 'season' as parameter
 # TODO Add docstrings
 
 
@@ -53,7 +53,7 @@ class GetFPLData:
         players_raw['name'] = players_raw['name'].str.lower()
 
         # Get team information for each player
-        team_data = pd.read_csv('data/external/team_season_data.csv')  # TODO Move file path to constants
+        team_data = pd.read_csv(TEAM_SEASON_DATA)
         players_raw = players_raw.merge(team_data, on=['team', 'season'], how='left')
 
         return players_raw
@@ -93,7 +93,7 @@ class GetFPLData:
         gw_dataframe = pd.get_dummies(gw_dataframe, columns=['position'])
 
         # Get opponent team data
-        team_data = pd.read_csv('data/external/team_season_data.csv')
+        team_data = pd.read_csv(TEAM_SEASON_DATA)
         gw_dataframe = gw_dataframe.merge(
             team_data,
             left_on=['opponent_team', 'season'],
