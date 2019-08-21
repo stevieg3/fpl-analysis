@@ -11,11 +11,14 @@ import numpy as np
 import json
 from pandas.io.json import json_normalize
 import urllib.request
+import os
 
 from src.data.constants import \
     POSITION_MAP, \
     VALUE_MULTIPLE, \
     TEAM_SEASON_DATA
+
+os.chdir('../..')
 
 # TODO Move to constants
 BOOTSTRAP_STATIC_URL = "https://fantasy.premierleague.com/api/bootstrap-static/"
@@ -86,7 +89,9 @@ class GetFPLData:
 
         # Get position and team features for each player and season column
         gw_dataframe = gw_dataframe.merge(
-            player_data[['name', 'id', 'team_name', 'position', 'promoted_side', 'top_6_last_season', 'season']]
+            player_data[['name', 'id', 'team_name', 'position', 'promoted_side', 'top_6_last_season', 'season']],
+            on=['name', 'id'],
+            how='left'
         )
 
         # Get player position dummies
@@ -138,6 +143,58 @@ class GetFPLData:
 
         return gw_dataframe
 
+    def get_all_fixture_data_from_api(self):
+        player_data = self.get_player_data_from_api()
+
+        total = len(player_data)  # TODO Delete
+
+        name_id_dict = dict(
+            zip(
+                player_data['name'],
+                player_data['id']
+            )
+        )
+
+        i = 1  # TODO Delete
+
+        fixture_dataframe = pd.DataFrame()
+        for name, player_id in name_id_dict.items():
+            player_fixture_data = _get_player_upcoming_fixtures_data_from_api(name=name, player_id=player_id)
+            fixture_dataframe = fixture_dataframe.append(player_fixture_data)
+
+            print(f'Completed {i}/{total}')  # TODO Delete
+            i += 1  # TODO Delete
+
+        fixture_dataframe.rename(
+            columns={
+                'event': 'gw',
+                'is_home': 'was_home'
+            },
+            inplace=True
+        )
+
+        fixture_dataframe = fixture_dataframe.merge(
+            player_data[['name', 'id', 'team_name', 'position', 'promoted_side', 'top_6_last_season', 'season']],
+            on=['name', 'id'],
+            how='left'
+        )
+
+        # Get opponent team data
+        fixture_dataframe.loc[fixture_dataframe['was_home'] == True, 'opponent_team'] = fixture_dataframe['team_a']
+        fixture_dataframe.loc[fixture_dataframe['was_home'] == False, 'opponent_team'] = fixture_dataframe['team_h']
+        team_data = pd.read_csv(TEAM_SEASON_DATA)
+        fixture_dataframe = fixture_dataframe.merge(
+            team_data,
+            left_on=['opponent_team', 'season'],
+            right_on=['team', 'season'],
+            suffixes=('', '_opponent'),
+            how='left'
+        )
+
+        # TODO Need to get kickoff features, position dummies, value
+
+        return fixture_dataframe
+
 
 def _get_fpl_json(url):
     with urllib.request.urlopen(url) as open_url:
@@ -154,3 +211,20 @@ def _get_player_gameweek_data_from_api(name, player_id):
     player_gw_raw['id'] = player_id
 
     return player_gw_raw
+
+
+def _get_player_upcoming_fixtures_data_from_api(name, player_id):
+    player_url = ELEMENT_SUMMARY_URL.format(player_id)
+    player_gw_data = _get_fpl_json(player_url)
+
+    player_fixture_raw = json_normalize(player_gw_data, 'fixtures')  # TODO Remove hard-coded elements
+    player_fixture_raw['name'] = name
+    player_fixture_raw['id'] = player_id
+
+    return player_fixture_raw
+
+
+if __name__ == "__main__":
+    get_fpl_data = GetFPLData(season='2019-20')
+    latest_gw_data = get_fpl_data.get_all_gameweek_data_from_api()
+    latest_gw_data.to_parquet('data/processed/latest_gw_data.parquet', index=False)
