@@ -6,19 +6,24 @@
 
 # TODO Rename file
 
+# TODO Data types need to be changed to numeric
+
 import pandas as pd
 import numpy as np
 import json
 from pandas.io.json import json_normalize
 import urllib.request
 import os
+import logging
 
 from src.data.constants import \
     POSITION_MAP, \
     VALUE_MULTIPLE, \
     TEAM_SEASON_DATA
+from src.features.simple_features import create_features_from_kickoff_time
 
-os.chdir('../..')
+logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
+#os.chdir('../..')  # TODO Work out best way of doing this
 
 # TODO Move to constants
 BOOTSTRAP_STATIC_URL = "https://fantasy.premierleague.com/api/bootstrap-static/"
@@ -49,7 +54,7 @@ class GetFPLData:
         players_raw['element_type'] = players_raw['element_type'].map(POSITION_MAP)
         players_raw.rename(columns={'element_type': 'position'}, inplace=True)
 
-        players_raw = players_raw.copy()[['first_name', 'second_name', 'team', 'position', 'id']]
+        players_raw = players_raw.copy()[['first_name', 'second_name', 'team', 'position', 'id', 'now_cost']]
         players_raw['season'] = self.season
 
         players_raw['name'] = players_raw['first_name'] + '_' + players_raw['second_name']
@@ -146,8 +151,6 @@ class GetFPLData:
     def get_all_fixture_data_from_api(self):
         player_data = self.get_player_data_from_api()
 
-        total = len(player_data)  # TODO Delete
-
         name_id_dict = dict(
             zip(
                 player_data['name'],
@@ -155,15 +158,15 @@ class GetFPLData:
             )
         )
 
-        i = 1  # TODO Delete
-
+        i = 1
         fixture_dataframe = pd.DataFrame()
         for name, player_id in name_id_dict.items():
             player_fixture_data = _get_player_upcoming_fixtures_data_from_api(name=name, player_id=player_id)
             fixture_dataframe = fixture_dataframe.append(player_fixture_data)
 
-            print(f'Completed {i}/{total}')  # TODO Delete
-            i += 1  # TODO Delete
+            if i % 10 == 0:
+                logging.info(f"Completed {i}/{len(player_data)}")
+            i += 1
 
         fixture_dataframe.rename(
             columns={
@@ -174,10 +177,16 @@ class GetFPLData:
         )
 
         fixture_dataframe = fixture_dataframe.merge(
-            player_data[['name', 'id', 'team_name', 'position', 'promoted_side', 'top_6_last_season', 'season']],
+            player_data[
+                ['name', 'id', 'team_name', 'position', 'promoted_side', 'top_6_last_season', 'season', 'now_cost']
+            ],
             on=['name', 'id'],
             how='left'
         )
+
+        # now_cost is latest player value
+        fixture_dataframe.rename(columns={'now_cost': 'value'}, inplace=True)
+        fixture_dataframe['value'] = fixture_dataframe['value'] / VALUE_MULTIPLE
 
         # Get opponent team data
         fixture_dataframe.loc[fixture_dataframe['was_home'] == True, 'opponent_team'] = fixture_dataframe['team_a']
@@ -191,7 +200,11 @@ class GetFPLData:
             how='left'
         )
 
-        # TODO Need to get kickoff features, position dummies, value
+        # Kickoff features
+        fixture_dataframe = create_features_from_kickoff_time(fixture_dataframe)
+
+        # Get player position dummies
+        fixture_dataframe = pd.get_dummies(fixture_dataframe, columns=['position'])
 
         return fixture_dataframe
 
