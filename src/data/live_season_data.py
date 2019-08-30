@@ -54,7 +54,18 @@ class GetFPLData:
         players_raw['element_type'] = players_raw['element_type'].map(POSITION_MAP)
         players_raw.rename(columns={'element_type': 'position'}, inplace=True)
 
-        players_raw = players_raw.copy()[['first_name', 'second_name', 'team', 'position', 'id', 'now_cost']]
+        players_raw = players_raw.copy()[
+            [
+                'first_name',
+                'second_name',
+                'team',
+                'position',
+                'id',
+                'now_cost',
+                'chance_of_playing_next_round',
+                'chance_of_playing_this_round'
+            ]
+        ]
         players_raw['season'] = self.season
 
         players_raw['name'] = players_raw['first_name'] + '_' + players_raw['second_name']
@@ -178,7 +189,18 @@ class GetFPLData:
 
         fixture_dataframe = fixture_dataframe.merge(
             player_data[
-                ['name', 'id', 'team_name', 'position', 'promoted_side', 'top_6_last_season', 'season', 'now_cost']
+                [
+                    'name',
+                    'id',
+                    'team_name',
+                    'position',
+                    'promoted_side',
+                    'top_6_last_season',
+                    'season',
+                    'now_cost',
+                    'chance_of_playing_next_round',
+                    'chance_of_playing_this_round'
+                ]
             ],
             on=['name', 'id'],
             how='left'
@@ -240,4 +262,4 @@ def _get_player_upcoming_fixtures_data_from_api(name, player_id):
 if __name__ == "__main__":
     get_fpl_data = GetFPLData(season='2019-20')
     latest_gw_data = get_fpl_data.get_all_gameweek_data_from_api()
-    latest_gw_data.to_parquet('data/processed/latest_gw_data.parquet', index=False)
+    latest_gw_data.to_parquet('data/processed/parquet', index=False)
