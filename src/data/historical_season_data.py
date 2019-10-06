@@ -4,7 +4,7 @@ import logging
 import os
 
 from src.data.constants import \
-    FPL_DATA_PATH, \
+    HISTORICAL_FPL_DATA_PATH, \
     POSITION_MAP, \
     MAX_PROPORTION_NO_NAME_MATCHES, \
     STARTING_GAMEWEEK, \
@@ -26,9 +26,9 @@ def _get_gameweek_data(season, starting_gameweek=STARTING_GAMEWEEK, last_gamewee
     gw_dataframe = pd.DataFrame()
     for gw in range(starting_gameweek, last_gameweek + 1):
         if season == '2019-20':
-            gw_data = pd.read_csv(FPL_DATA_PATH + f'{season}/gws/gw{gw}.csv', encoding="utf8")
+            gw_data = pd.read_csv(HISTORICAL_FPL_DATA_PATH + f'{season}/gws/gw{gw}.csv', encoding="utf8")
         else:
-            gw_data = pd.read_csv(FPL_DATA_PATH + f'{season}/gws/gw{gw}.csv', encoding="ISO-8859-1")
+            gw_data = pd.read_csv(HISTORICAL_FPL_DATA_PATH + f'{season}/gws/gw{gw}.csv', encoding="ISO-8859-1")
         gw_data['gw'] = gw
         gw_data['season'] = season
         gw_dataframe = gw_dataframe.append(gw_data)
@@ -58,7 +58,7 @@ def _get_gameweek_data(season, starting_gameweek=STARTING_GAMEWEEK, last_gamewee
 
 
 def _get_player_data(season):
-    players_raw = pd.read_csv(FPL_DATA_PATH + f'{season}/players_raw.csv', encoding="utf8")
+    players_raw = pd.read_csv(HISTORICAL_FPL_DATA_PATH + f'{season}/players_raw.csv', encoding="utf8")
 
     # Get player position
     players_raw['element_type'] = players_raw['element_type'].map(POSITION_MAP)
@@ -193,7 +193,6 @@ def combine_all_season_data(write_to_parquet=True, return_dataframe=False):
     )
 
     # Create unique ID for each player
-    # TODO Check if necessary to create ID here especially given that new season data is added
     id_df = fpl_data_all_seasons.groupby(['name']).count().reset_index()[['name']]
     id_df['ID'] = id_df.index + 1
 

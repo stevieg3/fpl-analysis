@@ -1,5 +1,4 @@
-# TODO Remove commented out lines from transform method
-
+# TODO Create unit test for TimeSeriesFeatures
 
 from sklearn.base import TransformerMixin, BaseEstimator
 
@@ -37,8 +36,6 @@ class TimeSeriesFeatures(BaseEstimator, TransformerMixin):
 
             # EWM
             features[col + '_EMA'] = features.groupby('ID')[col].apply(lambda x: x.ewm(halflife=self.halflife).mean())
-            #features[col + '_EMA'] = features.groupby('ID')[col + '_EMA']  #.shift(
-            #    1)  # Shift to prevent use of current GW features
 
             if (self.max_lag is None) and (self.max_diff is None):
                 continue
@@ -49,16 +46,6 @@ class TimeSeriesFeatures(BaseEstimator, TransformerMixin):
 
                 # Difference variables
                 for diff in range(1, self.max_diff + 1):
-                    features[col + f'_D{diff}'] = features.groupby('ID')[col].diff(diff) #.shift(1).diff(
-                #        diff)  # Shift to prevent use of current GW features
-
-                # Drop current GW features
-                # if col != 'value':  # Keep value as it should be known before match starts (note: total_points dropped)
-                #    features.drop(col, axis=1, inplace=True)
-                # else:
-                #    continue
-
-        # features.drop(columns=['ID'], axis=1, inplace=True)
-        # features.drop(columns=['gw'], axis=1, inplace=True)
+                    features[col + f'_D{diff}'] = features.groupby('ID')[col].diff(diff)
 
         return features

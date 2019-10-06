@@ -7,6 +7,7 @@ team_season_data.csv
 *data/monitoring/
 */processed
 */raw
+*train_test_data/
 
 *.ipynb_checkpoints
 *.idea
