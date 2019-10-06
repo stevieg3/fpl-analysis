@@ -1,12 +1,23 @@
+*/external/FantasyPremierLeague
+*/external/online_fpl_data
+team_season_data.csv
+*/gw_predictions
+*/gw_team_selections
+*/gw_player_data
+*data/monitoring/
+*/processed
+*/raw
+*train_test_data/
+
 *.ipynb_checkpoints
 *.idea
 *.pyc
 *.xlsx
 *.pkl
-*.csv
+*.pickle
+#*.csv
 *.json
-
-
+*todo.txt
 *.DS_Store
 
 # Byte-compiled / optimized / DLL files
