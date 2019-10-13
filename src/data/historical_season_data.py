@@ -70,6 +70,16 @@ def _get_player_data(season):
     players_raw['name'] = players_raw['first_name'] + '_' + players_raw['second_name']
     players_raw['name'] = players_raw['name'].str.lower()
 
+    # Remove any players with the same name but different teams
+    player_name_count = players_raw.groupby('name').size().reset_index(name='count')
+
+    duplicates = player_name_count[player_name_count['count'] > 1]
+    logging.info(f"Duplicate names in {season}: {list(duplicates['name'])}")
+
+    players_raw = players_raw.merge(player_name_count, on='name', how='left')
+    players_raw = players_raw[players_raw['count'] == 1]
+    players_raw.drop('count', axis=1, inplace=True)
+
     # Get team information for each player
     team_data = pd.read_csv('data/external/team_season_data.csv')
     players_raw = players_raw.merge(team_data, on=['team', 'season'], how='left')
