@@ -17,6 +17,7 @@ team_season_data.csv
 *.pickle
 #*.csv
 *.json
+*.h5
 *todo.txt
 *.DS_Store
 
