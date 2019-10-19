@@ -57,6 +57,9 @@ def _generate_known_features_for_next_gw(gw_dataframe):
         gw_dataframe[f'next_match_{feature}'] = gw_dataframe.groupby('name')[f'{feature}'].shift(-1)
         gw_dataframe[f'next_match_{feature}'] = pd.to_numeric(gw_dataframe[f'next_match_{feature}'])
 
+    gw_dataframe[['next_match_' + x for x in KICKOFF_MONTH_FEATURES]] = \
+        gw_dataframe[['next_match_' + x for x in KICKOFF_MONTH_FEATURES]].fillna(0)
+
 
 def _load_current_season_data(previous_gw, save_file=False):
     """
@@ -69,9 +72,8 @@ def _load_current_season_data(previous_gw, save_file=False):
     get_fpl_data = GetFPLData(season='2019-20')
     current_gw_data = get_fpl_data.get_all_gameweek_data_from_api()
 
-    logging.info(f"Writing current data as of gw {previous_gw} to gw_{previous_gw}_player_data.parquet")
-
     if save_file:
+        logging.info(f"Writing current data as of gw {previous_gw} to gw_{previous_gw}_player_data.parquet")
         current_gw_data.to_parquet(f'data/gw_player_data/gw_{previous_gw}_player_data.parquet', index=False)
 
     # Create empty features for any months where there have been no matches yet
@@ -165,3 +167,80 @@ def _append_time_series_features(
     logging.info(f"Finished generating time series features (Duration: {np.round(end-start, 2)}s)")
 
     return fpl_data_all_seasons_with_ts
+
+
+########################################################################################################################
+# -------------------------------------------------------------------------------------------------------------------- #
+# LSTM UTILITIES                                                                                                       #
+# -------------------------------------------------------------------------------------------------------------------- #
+########################################################################################################################
+
+
+def split_sequences(df, target_column, n_steps_in, n_steps_out):
+    """
+    Split Pandas DataFrame containing multivariate time series data and target variable into samples for a multiple
+    input multi-step output LSTM.
+
+    Adapted from https://machinelearningmastery.com/how-to-develop-lstm-models-for-time-series-forecasting/
+
+    :param df: DataFrame containing ordered time series features and target variable which we are trying to predict
+    :param target_column: Name of target column
+    :param n_steps_in: Number of input time steps to use
+    :param n_steps_out: Number of output time steps to predict
+    :return: X of dim (samples, timesteps, features) and y of dim (samples, output steps)
+    """
+    assert df.apply(lambda s: pd.to_numeric(s, errors='coerce').isnull().all()).sum() == 0
+
+    # Move target column to end of DataFrame
+    df = df.copy()[[col for col in df if col not in [target_column]] + [target_column]]
+
+    sequences = df.values  # DataFrame to NumPy array
+
+    X, y = [], []
+    for i in range(len(sequences)):
+        # find the end of this pattern
+        end_ix = i + n_steps_in
+        out_end_ix = end_ix + n_steps_out-1
+        # check if we are beyond the dataset
+        if out_end_ix > len(sequences):
+            break
+        # gather input and output parts of the pattern
+        seq_x, seq_y = sequences[i:end_ix, :-1], sequences[end_ix-1:out_end_ix, -1]
+        X.append(seq_x)
+        y.append(seq_y)
+    return np.array(X), np.array(y)
+
+
+def custom_train_test_split(full_data, rand_sample_prop=0.005):
+    """
+    Split player-gameweek data into training and test set. Data is in panel data format so test sets are the end GWs for
+    randomly selected players (i.e. preserving the order). The test set for each randomly selected player can vary in
+    length. The total proportion of test data should be approximately equal to 20% (when each name is a separate series)
+    given the rand_sample_prop of 0.5%. Note: Data includes total points column.
+
+    :param full_data: Player-GW data
+    :param rand_sample_prop: Proportion of rows to select
+    :return: Train and test splits
+    """
+    full_data = full_data.copy()
+    # Randomly assign 1s to rows (player-GW data points) from DataFrame
+    full_data['in_test_set'] = np.random.choice(
+        [np.nan, 1],
+        size=(full_data.shape[0],),
+        p=[1-rand_sample_prop, rand_sample_prop])
+
+    # Forward fill so that all future GWs for a randomly selected player are also part of test set
+    full_data['in_test_set'] = full_data.groupby(['name'])['in_test_set'].fillna(method='ffill')
+    full_data['in_test_set'] = full_data['in_test_set'].fillna(0)
+
+    print(f"Proportion in test set: {full_data['in_test_set'].sum() / full_data.shape[0]}")
+
+    test_set = full_data[full_data['in_test_set'] == 1]
+    print(f"Test set size: {test_set.shape}")
+    training_set = full_data[full_data['in_test_set'] == 0]
+    print(f"Training set size: {training_set.shape}")
+
+    test_set.drop('in_test_set', axis=1, inplace=True)
+    training_set.drop('in_test_set', axis=1, inplace=True)
+
+    return training_set, test_set

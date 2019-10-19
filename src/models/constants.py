@@ -221,3 +221,8 @@ PREDICTIONS_OUTPUT_COLUMNS = [
 """
 Columns to include in final predictions output
 """
+
+
+# LSTM CONSTANTS
+
+COLUMNS_TO_DROP_FOR_TRAINING = ['name', 'season', 'season_order', 'team_name', 'team_name_opponent']
