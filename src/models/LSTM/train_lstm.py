@@ -196,12 +196,12 @@ model.compile(optimizer='adam', loss='mse')
 
 # ENCODER-DECODER
 
-model = Sequential()
-model.add(LSTM(100, activation='relu', input_shape=(N_STEPS_IN, N_FEATURES)))
-model.add(RepeatVector(N_STEPS_OUT))
-model.add(LSTM(100, activation='relu', return_sequences=True))
-model.add(TimeDistributed(Dense(1)))
-model.compile(optimizer='adam', loss='mse')
+# model = Sequential()
+# model.add(LSTM(100, activation='relu', input_shape=(N_STEPS_IN, N_FEATURES)))
+# model.add(RepeatVector(N_STEPS_OUT))
+# model.add(LSTM(100, activation='relu', return_sequences=True))
+# model.add(TimeDistributed(Dense(1)))
+# model.compile(optimizer='adam', loss='mse')
 
 
 # FIT MODEL
