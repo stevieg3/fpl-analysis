@@ -44,7 +44,7 @@ def load_all_data():
 
 # SET MULTI-STEP INPUT AND OUTPUT PARAMETERS
 
-N_STEPS_IN = 10
+N_STEPS_IN = 9
 N_STEPS_OUT = 5
 
 
@@ -194,28 +194,91 @@ model.add(Dense(N_STEPS_OUT))
 model.compile(optimizer='adam', loss='mse')
 
 
-# ENCODER-DECODER
-
-# model = Sequential()
-# model.add(LSTM(100, activation='relu', input_shape=(N_STEPS_IN, N_FEATURES)))
-# model.add(RepeatVector(N_STEPS_OUT))
-# model.add(LSTM(100, activation='relu', return_sequences=True))
-# model.add(TimeDistributed(Dense(1)))
-# model.compile(optimizer='adam', loss='mse')
-
-
 # FIT MODEL
 
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
 
-model.fit(X, y, batch_size=60, epochs=50, verbose=1, validation_data=(X_val, y_val), callbacks=[es])
+model.fit(X, y, batch_size=60, epochs=100, verbose=1, validation_data=(X_val, y_val), callbacks=[es])
 
-# TODO Increase number of epochs as it did not early stop on 50
 
-# save model and architecture to single file
-model.save("src/models/pickles/test_lstm_model.h5")
+# FIT ON FULL TRAINING SET WITH 40 EPOCHS (EARLY STOPPED @ 50)
+
+# I) TRANSFORM FULL TRAINING DATA INTO REQUIRED SHAPE FOR LSTM
+
+print(training_df.shape)
+training_df['total_number_of_gameweeks'] = training_df.groupby(['name']).transform('count')['team_name']
+# Drop players if they don't have enough GW data to be used by configured LSTM
+training_df = training_df[
+    training_df['total_number_of_gameweeks'] >= (N_STEPS_IN + N_STEPS_OUT - 1)
+]
+training_df.drop('total_number_of_gameweeks', axis=1, inplace=True)
+print(training_df.shape)
+
+# Scale columns
+training_df[COLUMNS_TO_SCALE] = mms.transform(training_df[COLUMNS_TO_SCALE])
+
+X_list = []
+y_list = []
+
+for player in list(training_df['name'].unique()):
+    player_df = training_df[training_df['name'] == player]
+    player_df.drop(
+        COLUMNS_TO_DROP_FOR_TRAINING,
+        axis=1,
+        inplace=True
+    )
+    X_player, y_player = split_sequences(
+        df=player_df,
+        target_column='total_points_plus1_gw',
+        n_steps_in=N_STEPS_IN,
+        n_steps_out=N_STEPS_OUT
+    )
+    X_list.append(X_player)
+    y_list.append(y_player)
+
+X = np.concatenate(X_list, axis=0)
+y = np.concatenate(y_list, axis=0)
+print(X.shape)
+print(y.shape)
+
+
+# II) DEFINE MODEL
+
+N_FEATURES = X.shape[2]
+
+model = Sequential()
+model.add(
+    LSTM(
+        100,
+        activation='relu',
+        return_sequences=True,
+        input_shape=(N_STEPS_IN, N_FEATURES),
+        kernel_regularizer=l2(0.01),
+        recurrent_regularizer=l2(0.01),
+        bias_regularizer=l2(0.01),
+        dropout=0.2
+    )
+)
+model.add(
+    LSTM(
+        100,
+        activation='relu',
+        kernel_regularizer=l2(0.01),
+        recurrent_regularizer=l2(0.01),
+        bias_regularizer=l2(0.01),
+        dropout=0.2
+    )
+)
+model.add(Dense(N_STEPS_OUT))
+model.compile(optimizer='adam', loss='mse')
+
+
+# III) FIT MODEL
+
+model.fit(X, y, batch_size=60, epochs=40, verbose=1)
+
+
+# SAVE MODEL AND ARCHITECTURE TO SINGLE FILE
+model.save("src/models/pickles/v1_lstm_model.h5")
 print("Saved model to disk")
 
-
-# load model
-# model_loaded = load_model('model.h5')

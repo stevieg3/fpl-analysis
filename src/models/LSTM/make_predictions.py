@@ -72,13 +72,13 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(8, True)
+full_data = _load_input_data(previous_gw=9, save_file=True)
 
-lstm_model = _load_model_from_h5("src/models/pickles/test_lstm_model.h5")
+lstm_model = _load_model_from_h5("src/models/pickles/v1_lstm_model.h5")
 
-previous_gw = 8
+previous_gw = 9
 prediction_season_order = 4
-N_STEPS_IN = 10
+N_STEPS_IN = 9
 
 
 available_players = full_data.copy()[
@@ -100,7 +100,7 @@ print(gw_prediction_data.shape)
 # Drop players if they don't have enough GW data to be used by configured LSTM
 gw_prediction_data['total_number_of_gameweeks'] = gw_prediction_data.groupby(['name']).transform('count')['team_name']
 gw_prediction_data = gw_prediction_data[
-    gw_prediction_data['total_number_of_gameweeks'] >= N_STEPS_IN
+    gw_prediction_data['total_number_of_gameweeks'] >= N_STEPS_IN + 1  # Add 1 because current GW will be dropped
 ]
 gw_prediction_data.drop('total_number_of_gameweeks', axis=1, inplace=True)
 
@@ -129,7 +129,7 @@ for player in gw_prediction_data['name'].unique():
         inplace=True
     )
 
-    X_player_df = player_df.values.reshape(1, 10, 63)
+    X_player_df = player_df.values.reshape(1, 9, 63)  # TODO Don't hardcode these values
 
     predictions = lstm_model.predict(X_player_df).reshape(5)
 
@@ -168,4 +168,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw9_lstm_test_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw10_v1_lstm_player_predictions.parquet', index=False)
