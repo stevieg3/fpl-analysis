@@ -16,8 +16,8 @@ from src.models.constants import \
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
 # MinMaxScalar used in training
-mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_lstm.pickle')
-COLUMNS_TO_SCALE = _load_model_from_pickle('src/models/pickles/min_max_scalar_columns.pickle')
+mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_lstm_v2.pickle')
+COLUMNS_TO_SCALE = _load_model_from_pickle('src/models/pickles/min_max_scalar_columns_v2.pickle')
 
 
 def _load_input_data(previous_gw, save_file=False):
@@ -72,13 +72,13 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=9, save_file=True)
+full_data = _load_input_data(previous_gw=11, save_file=True)
 
-lstm_model = _load_model_from_h5("src/models/pickles/v1_lstm_model.h5")
+lstm_model = _load_model_from_h5("src/models/pickles/v2_lstm_model.h5")
 
-previous_gw = 9
+previous_gw = 11
 prediction_season_order = 4
-N_STEPS_IN = 9
+N_STEPS_IN = 10
 
 
 available_players = full_data.copy()[
@@ -129,7 +129,7 @@ for player in gw_prediction_data['name'].unique():
         inplace=True
     )
 
-    X_player_df = player_df.values.reshape(1, 9, 63)  # TODO Don't hardcode these values
+    X_player_df = player_df.values.reshape(1, 10, 63)  # TODO Don't hardcode these values
 
     predictions = lstm_model.predict(X_player_df).reshape(5)
 
@@ -168,4 +168,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw10_v1_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw12_v2_lstm_player_predictions.parquet', index=False)
