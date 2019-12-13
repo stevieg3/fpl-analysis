@@ -72,11 +72,11 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=14, save_file=True)
+full_data = _load_input_data(previous_gw=15, save_file=True)
 
 lstm_model = _load_model_from_h5("src/models/pickles/v2_lstm_model.h5")
 
-previous_gw = 14
+previous_gw = 15
 prediction_season_order = 4
 N_STEPS_IN = 10
 
@@ -168,4 +168,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw15_v2_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw16_v2_lstm_player_predictions.parquet', index=False)
