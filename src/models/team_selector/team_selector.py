@@ -70,10 +70,10 @@ def _get_budget(current_predictions_df, money_in_bank=0.):
 
 # INTERFACE
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw17_v2_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw18_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw18_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw19_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw17_v2_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw18_v3_lstm_team_selections.parquet')
 previous_team_selection['in_gw_1_team'] = 1  # TODO Rename column to something else (replace everywhere)
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_gw_1_team']]
@@ -82,6 +82,7 @@ current_predictions_for_prev_team = current_predictions.merge(previous_team_sele
 
 if current_predictions_for_prev_team['predictions'].isnull().sum() != 0:
     # TODO Log this event
+    print('Some players missing')
     # Players not playing in next GW still appear but have null values for points predictions and next match value
     current_predictions.dropna(axis=0, how='any', inplace=True)
 
@@ -110,7 +111,7 @@ current_predictions['low_value_player'] = np.where(
     0
 )
 
-budget = _get_budget(current_predictions, money_in_bank=0.4)
+budget = _get_budget(current_predictions, money_in_bank=0.3)
 
 
 # PICK TEAM
@@ -250,8 +251,7 @@ selected_team = fpl_team_selection(current_predictions_df=current_predictions, s
 
 
 # 0% chance of playing
-selected_team.loc[selected_team['name'] == 'virgil_van_dijk', 'predictions'] = -1
-selected_team.loc[selected_team['name'] == 'andrew_robertson', 'predictions'] = -1
+selected_team.loc[selected_team['name'] == 'diego_rico', 'predictions'] = -1
 
 
 def solve_starting_11_problem(selected_team_df):
@@ -350,4 +350,4 @@ gw_selection_df = selected_team.merge(
 )
 gw_selection_df['starting_11'] = gw_selection_df['starting_11'].fillna(0)
 
-# gw_selection_df.to_parquet('data/gw_team_selections/gw18_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw19_v3_lstm_team_selections.parquet', index=False)
