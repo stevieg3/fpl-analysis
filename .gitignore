@@ -21,6 +21,7 @@ team_season_data.csv
 *todo.txt
 *.DS_Store
 *TEMP.ipynb
+*LSTM Shap.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
