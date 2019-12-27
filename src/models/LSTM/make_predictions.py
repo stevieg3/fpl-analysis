@@ -72,17 +72,13 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=18, save_file=True)
+full_data = _load_input_data(previous_gw=19, save_file=True)
 
 lstm_model = _load_model_from_h5("src/models/pickles/v3_lstm_model.h5")
 
-previous_gw = 18
+previous_gw = 19
 prediction_season_order = 4
 N_STEPS_IN = 5
-
-# Hacky way of getting missing players in previous GW in current predictions. Set last available GW to previous GW
-full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Liverpool'), 'gw'] = previous_gw
-full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'West Ham United'), 'gw'] = previous_gw
 
 available_players = full_data.copy()[
     (full_data['gw'] == previous_gw) &
@@ -171,4 +167,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw19_v3_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw20_v3_lstm_player_predictions.parquet', index=False)
