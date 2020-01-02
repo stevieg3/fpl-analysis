@@ -70,10 +70,10 @@ def _get_budget(current_predictions_df, money_in_bank=0.):
 
 # INTERFACE
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw19_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw20_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw20_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw21_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw19_v3_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw20_v3_lstm_team_selections.parquet')
 previous_team_selection['in_gw_1_team'] = 1  # TODO Rename column to something else (replace everywhere)
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_gw_1_team']]
@@ -111,7 +111,7 @@ current_predictions['low_value_player'] = np.where(
     0
 )
 
-budget = _get_budget(current_predictions, money_in_bank=0)
+budget = _get_budget(current_predictions, money_in_bank=0.4)
 
 
 # PICK TEAM
@@ -350,4 +350,4 @@ gw_selection_df = selected_team.merge(
 )
 gw_selection_df['starting_11'] = gw_selection_df['starting_11'].fillna(0)
 
-gw_selection_df.to_parquet('data/gw_team_selections/gw20_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw21_v3_lstm_team_selections.parquet', index=False)
