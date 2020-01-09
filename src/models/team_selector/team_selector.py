@@ -70,10 +70,10 @@ def _get_budget(current_predictions_df, money_in_bank=0.):
 
 # INTERFACE
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw20_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw21_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw21_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw22_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw20_v3_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw21_v3_lstm_team_selections.parquet')
 previous_team_selection['in_gw_1_team'] = 1  # TODO Rename column to something else (replace everywhere)
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_gw_1_team']]
@@ -111,7 +111,13 @@ current_predictions['low_value_player'] = np.where(
     0
 )
 
-budget = _get_budget(current_predictions, money_in_bank=0.4)
+# Model would normally swap out Vardy for Rashford. Want to keep Vardy as omission in previous 2 GWs can be explained.
+current_predictions.loc[current_predictions['name'] == 'jamie_vardy', 'predictions'] = 30
+
+# budget = _get_budget(current_predictions, money_in_bank=0.2)
+
+# Due to sell-on tax budget is an overestimate:
+budget = 99.4
 
 
 # PICK TEAM
@@ -184,7 +190,7 @@ def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
 
     # prob += lpSum(in_top_3[p] * player_vars[p] for p in players) == 3, "Top 3 must be included"
 
-    prob += lpSum(low_value_flag[p] * player_vars[p] for p in players) == 1, "Include 1 low value player"
+    # prob += lpSum(low_value_flag[p] * player_vars[p] for p in players) == 1, "Include 1 low value player"
 
     # prob += lpSum([costs[p] * player_vars[p] for p in players]) >= (budget_constraint - 0.4), "Total cost greater than X"
 
@@ -234,12 +240,12 @@ def fpl_team_selection(current_predictions_df, solved_prob):
         {list(test_selection[test_selection['in_gw_1_team'] == 0]['name'])}
         --------------------------------------------------------------
         """)
-    print(f"""
-        --------------------------------------------------------------
-        Low value player:
-        {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
-        --------------------------------------------------------------
-    """)
+    # print(f"""
+    #     --------------------------------------------------------------
+    #     Low value player:
+    #     {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
+    #     --------------------------------------------------------------
+    # """)
 
     return test_selection
 
@@ -350,4 +356,4 @@ gw_selection_df = selected_team.merge(
 )
 gw_selection_df['starting_11'] = gw_selection_df['starting_11'].fillna(0)
 
-gw_selection_df.to_parquet('data/gw_team_selections/gw21_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw22_v3_lstm_team_selections.parquet', index=False)
