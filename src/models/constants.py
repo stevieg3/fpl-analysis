@@ -226,3 +226,10 @@ Columns to include in final predictions output
 # LSTM CONSTANTS
 
 COLUMNS_TO_DROP_FOR_TRAINING = ['name', 'season', 'season_order', 'team_name', 'team_name_opponent']
+
+
+SELL_ON_TAX = 0.5
+"""
+FPL tax on any profit through players sales. See https://twitter.com/officialfpl/status/810473725627957248?lang=en and
+https://www.reddit.com/r/FantasyPL/comments/90pgwq/can_someone_explain_to_me_how_price_change_works/
+"""

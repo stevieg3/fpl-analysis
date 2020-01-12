@@ -169,6 +169,14 @@ def _append_time_series_features(
     return fpl_data_all_seasons_with_ts
 
 
+def round_down_to_nearest_10th(num):
+    """
+    Round number down to nearest 10th
+    :param num: Number
+    :return: Number rounded down to nearest 10th
+    """
+    return np.floor(num*10) / 10
+
 ########################################################################################################################
 # -------------------------------------------------------------------------------------------------------------------- #
 # LSTM UTILITIES                                                                                                       #
