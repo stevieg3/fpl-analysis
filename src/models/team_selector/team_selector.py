@@ -7,6 +7,9 @@ from pulp import \
     LpVariable, \
     LpInteger
 
+from src.models.constants import SELL_ON_TAX
+from src.models.utils import round_down_to_nearest_10th
+
 
 def load_player_predictions(prediction_filepath):
     """
@@ -54,21 +57,45 @@ def _get_prev_predictions_for_missing_players_in_previous_team(previous_predicti
     return previous_predictions_missing_players
 
 
-def _get_budget(current_predictions_df, money_in_bank=0.):
+def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.):
     """
-    Get available budget
+    Get available budget. Factors in tax on any sales profits made. See
+    https://twitter.com/officialfpl/status/810473725627957248?lang=en;
+    https://www.reddit.com/r/FantasyPL/comments/90pgwq/can_someone_explain_to_me_how_price_change_works/
+    for details.
 
-    :param current_predictions_df: DataFrame of current predictions containing 'in_gw_1_team' column.
+    :param previous_team_selection: DataFrame of players selected in previous GW containing 'purchase_price' column.
+    :param current_predictions_df: DataFrame of current predictions containing 'next_match_value' column.
     :param money_in_bank: Money in FPL bank
     :return: Budget
     """
-    budget = current_predictions_df[current_predictions_df['in_gw_1_team'] == 1]['next_match_value'].sum()
-    budget = budget + money_in_bank
+    budget_calculation_df = previous_team_selection[['name', 'purchase_price']].merge(
+        current_predictions_df[['name', 'next_match_value']],
+        how='left',
+        on='name'
+    )
+    budget_calculation_df.rename(columns={'next_match_value': 'current_price'}, inplace=True)
+
+    budget_calculation_df['profit'] = budget_calculation_df['current_price'] - budget_calculation_df['purchase_price']
+    budget_calculation_df['profit'] = np.round(budget_calculation_df['profit'], 2)  # To prevent Python precision errors
+    budget_calculation_df['profit_after_tax'] = (budget_calculation_df['profit'] * SELL_ON_TAX).apply(
+        round_down_to_nearest_10th
+    )
+
+    budget_calculation_df['selling_price'] = np.where(
+        budget_calculation_df['profit'] > 0,
+        budget_calculation_df['purchase_price'] + budget_calculation_df['profit_after_tax'],
+        budget_calculation_df['current_price']
+    )
+
+    budget = budget_calculation_df['selling_price'].sum()
+    budget += money_in_bank
 
     return budget
 
 
 # INTERFACE
+previous_gw = 21
 
 previous_predictions = load_player_predictions('data/gw_predictions/gw21_v3_lstm_player_predictions.parquet')
 current_predictions = load_player_predictions('data/gw_predictions/gw22_v3_lstm_player_predictions.parquet')
@@ -114,10 +141,11 @@ current_predictions['low_value_player'] = np.where(
 # Model would normally swap out Vardy for Rashford. Want to keep Vardy as omission in previous 2 GWs can be explained.
 current_predictions.loc[current_predictions['name'] == 'jamie_vardy', 'predictions'] = 30
 
-# budget = _get_budget(current_predictions, money_in_bank=0.2)
-
-# Due to sell-on tax budget is an overestimate:
-budget = 99.4
+budget = get_budget(
+    previous_team_selection=previous_team_selection,
+    current_predictions_df=current_predictions,
+    money_in_bank=0.2
+)
 
 
 # PICK TEAM
@@ -355,5 +383,24 @@ gw_selection_df = selected_team.merge(
     how='left'
 )
 gw_selection_df['starting_11'] = gw_selection_df['starting_11'].fillna(0)
+
+# Add purchase_price and gw_bought_in columns
+gw_selection_df = gw_selection_df.merge(
+    previous_team_selection[['name', 'purchase_price', 'gw_introduced_in']],
+    how='left',
+    on='name'
+)
+
+gw_selection_df.loc[
+    (gw_selection_df['purchase_price'].isnull()) & (gw_selection_df['in_gw_1_team'] == 0),
+    'purchase_price'
+] = gw_selection_df['next_match_value']
+
+gw_selection_df.loc[
+    (gw_selection_df['gw_introduced_in'].isnull()) & (gw_selection_df['in_gw_1_team'] == 0),
+    'gw_introduced_in'
+] = previous_gw + 1
+
+assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
 gw_selection_df.to_parquet('data/gw_team_selections/gw22_v3_lstm_team_selections.parquet', index=False)
