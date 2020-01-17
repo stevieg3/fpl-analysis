@@ -95,12 +95,12 @@ def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.
 
 
 # INTERFACE
-previous_gw = 21
+previous_gw = 22
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw21_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw22_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw22_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw23_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw21_v3_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw22_v3_lstm_team_selections.parquet')
 previous_team_selection['in_gw_1_team'] = 1  # TODO Rename column to something else (replace everywhere)
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_gw_1_team']]
@@ -138,13 +138,18 @@ current_predictions['low_value_player'] = np.where(
     0
 )
 
-# Model would normally swap out Vardy for Rashford. Want to keep Vardy as omission in previous 2 GWs can be explained.
-current_predictions.loc[current_predictions['name'] == 'jamie_vardy', 'predictions'] = 30
+# Rashford unlikely to play next GW
+current_predictions.loc[current_predictions['name'] == 'marcus_rashford', 'GW_plus_1'] = 0
+
+current_predictions['predictions'] = current_predictions[
+    ['GW_plus_1', 'GW_plus_2', 'GW_plus_3', 'GW_plus_4', 'GW_plus_5']
+].sum(axis=1)
+
 
 budget = get_budget(
     previous_team_selection=previous_team_selection,
     current_predictions_df=current_predictions,
-    money_in_bank=0.2
+    money_in_bank=1.8
 )
 
 
@@ -354,6 +359,7 @@ def starting_11_selection(current_predictions_df, solved_prob):
             chosen_players.append(v.name.replace('player_', ''))
 
     test_selection_11 = current_predictions_df[current_predictions_df['name'].isin(chosen_players)]
+    test_selection_11.reset_index(drop=True, inplace=True)
 
     print(f"""
         --------------------------------------------------------------
@@ -403,4 +409,4 @@ gw_selection_df.loc[
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
-gw_selection_df.to_parquet('data/gw_team_selections/gw22_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw23_v3_lstm_team_selections.parquet', index=False)
