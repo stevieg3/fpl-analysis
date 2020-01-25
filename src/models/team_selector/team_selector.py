@@ -90,6 +90,7 @@ def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.
 
     budget = budget_calculation_df['selling_price'].sum()
     budget += money_in_bank
+    budget = np.round(budget, decimals=1)
 
     return budget
 
@@ -101,9 +102,9 @@ previous_predictions = load_player_predictions('data/gw_predictions/gw23_v3_lstm
 current_predictions = load_player_predictions('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet')
 
 previous_team_selection = pd.read_parquet('data/gw_team_selections/gw23_v3_lstm_team_selections.parquet')
-previous_team_selection['in_gw_1_team'] = 1  # TODO Rename column to something else (replace everywhere)
+previous_team_selection['in_current_team'] = 1
 
-previous_team_selection_names = previous_team_selection.copy()[['name', 'in_gw_1_team']]
+previous_team_selection_names = previous_team_selection.copy()[['name', 'in_current_team']]
 
 current_predictions_for_prev_team = current_predictions.merge(previous_team_selection_names, on='name', how='inner')
 
@@ -123,8 +124,8 @@ if current_predictions_for_prev_team['predictions'].isnull().sum() != 0:
 
 
 current_predictions = current_predictions.merge(previous_team_selection_names, on='name', how='left')
-current_predictions['in_gw_1_team'] = current_predictions['in_gw_1_team'].fillna(0)
-assert current_predictions['in_gw_1_team'].sum() == 15
+current_predictions['in_current_team'] = current_predictions['in_current_team'].fillna(0)
+assert current_predictions['in_current_team'].sum() == 15
 
 
 # Create top 3 flag:
@@ -199,7 +200,7 @@ def solve_fpl_team_selection_problem(
 
     MID_flag = dict(zip(current_predictions['name'], current_predictions['position_MID']))
 
-    GW1_team = dict(zip(current_predictions['name'], current_predictions['in_gw_1_team']))
+    current_team = dict(zip(current_predictions['name'], current_predictions['in_current_team']))
 
     in_top_3 = dict(zip(current_predictions['name'], current_predictions['in_top_3']))
 
@@ -242,7 +243,7 @@ def solve_fpl_team_selection_problem(
     if min_spend > 0:
         prob += lpSum([costs[p] * player_vars[p] for p in players]) >= min_spend, "Total cost greater than X"
 
-    prob += lpSum(GW1_team[p] * player_vars[p] for p in players) >= 15 - max_permitted_transfers, \
+    prob += lpSum(current_team[p] * player_vars[p] for p in players) >= 15 - max_permitted_transfers, \
         "At least 15-`max_permitted_transfers` players from original team"
 
     # SOLVE OBJECTIVE FUNCTION SUBJECT TO CONSTRAINTS
@@ -270,7 +271,7 @@ def fpl_team_selection(current_predictions_df, solved_prob):
 
     test_selection = current_predictions_df[current_predictions_df['name'].isin(chosen_players)]
 
-    if test_selection.sum()['in_gw_1_team'] == 15:
+    if test_selection.sum()['in_current_team'] == 15:
         print("""
         --------------------------------------------------------------
         No transfers made.
@@ -279,13 +280,13 @@ def fpl_team_selection(current_predictions_df, solved_prob):
     else:
         print(f"""
         --------------------------------------------------------------
-        {15 - test_selection.sum()['in_gw_1_team']} transfer(s) made.
+        {15 - test_selection.sum()['in_current_team']} transfer(s) made.
         
         Players out:
         {list(set(previous_team_selection_names['name']) - set(test_selection['name']))}
         
         Players in:
-        {list(test_selection[test_selection['in_gw_1_team'] == 0]['name'])}
+        {list(test_selection[test_selection['in_current_team'] == 0]['name'])}
         --------------------------------------------------------------
         """)
     # print(f"""
@@ -413,12 +414,12 @@ gw_selection_df = gw_selection_df.merge(
 )
 
 gw_selection_df.loc[
-    (gw_selection_df['purchase_price'].isnull()) & (gw_selection_df['in_gw_1_team'] == 0),
+    (gw_selection_df['purchase_price'].isnull()) & (gw_selection_df['in_current_team'] == 0),
     'purchase_price'
 ] = gw_selection_df['next_match_value']
 
 gw_selection_df.loc[
-    (gw_selection_df['gw_introduced_in'].isnull()) & (gw_selection_df['in_gw_1_team'] == 0),
+    (gw_selection_df['gw_introduced_in'].isnull()) & (gw_selection_df['in_current_team'] == 0),
     'gw_introduced_in'
 ] = previous_gw + 1
 
