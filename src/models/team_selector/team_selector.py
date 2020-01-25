@@ -95,12 +95,12 @@ def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.
 
 
 # INTERFACE
-previous_gw = 22
+previous_gw = 23
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw22_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw23_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw23_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw22_v3_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw23_v3_lstm_team_selections.parquet')
 previous_team_selection['in_gw_1_team'] = 1  # TODO Rename column to something else (replace everywhere)
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_gw_1_team']]
@@ -149,7 +149,7 @@ current_predictions['predictions'] = current_predictions[
 budget = get_budget(
     previous_team_selection=previous_team_selection,
     current_predictions_df=current_predictions,
-    money_in_bank=1.8
+    money_in_bank=5.1
 )
 
 
@@ -409,4 +409,4 @@ gw_selection_df.loc[
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
-gw_selection_df.to_parquet('data/gw_team_selections/gw23_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw24_v3_lstm_team_selections.parquet', index=False)

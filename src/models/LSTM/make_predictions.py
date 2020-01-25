@@ -72,11 +72,11 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=22, save_file=True)
+full_data = _load_input_data(previous_gw=23, save_file=True)
 
 lstm_model = _load_model_from_h5("src/models/pickles/v3_lstm_model.h5")
 
-previous_gw = 22
+previous_gw = 23
 prediction_season_order = 4
 N_STEPS_IN = 5
 
@@ -159,6 +159,11 @@ final_predictions = final_predictions.merge(other_player_info, on='name')
 
 assert other_player_info.shape[0] == final_predictions.shape[0]
 
+# Account for double GW:
+for double_gw_team in ['Liverpool', 'West Ham United']:
+    final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] = \
+        final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] * 2
+
 final_predictions['sum'] = final_predictions['GW_plus_1'] + \
                            final_predictions['GW_plus_2'] + \
                            final_predictions['GW_plus_3'] + \
@@ -167,4 +172,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw23_v3_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet', index=False)
