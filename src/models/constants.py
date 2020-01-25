@@ -233,3 +233,9 @@ SELL_ON_TAX = 0.5
 FPL tax on any profit through players sales. See https://twitter.com/officialfpl/status/810473725627957248?lang=en and
 https://www.reddit.com/r/FantasyPL/comments/90pgwq/can_someone_explain_to_me_how_price_change_works/
 """
+
+
+LOW_VALUE_PLAYER_UPPER_LIMIT = 4.1
+"""
+Value below which a player is classified as low value.
+"""

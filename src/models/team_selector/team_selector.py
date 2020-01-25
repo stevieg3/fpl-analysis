@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 import numpy as np
 from pulp import \
@@ -7,8 +9,12 @@ from pulp import \
     LpVariable, \
     LpInteger
 
-from src.models.constants import SELL_ON_TAX
+from src.models.constants import \
+    SELL_ON_TAX,\
+    LOW_VALUE_PLAYER_UPPER_LIMIT
 from src.models.utils import round_down_to_nearest_10th
+
+logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
 
 def load_player_predictions(prediction_filepath):
@@ -109,8 +115,7 @@ previous_team_selection_names = previous_team_selection.copy()[['name', 'in_curr
 current_predictions_for_prev_team = current_predictions.merge(previous_team_selection_names, on='name', how='inner')
 
 if current_predictions_for_prev_team['predictions'].isnull().sum() != 0:
-    # TODO Log this event
-    print('Some players missing')
+    logging.info('Some players missing')
     # Players not playing in next GW still appear but have null values for points predictions and next match value
     current_predictions.dropna(axis=0, how='any', inplace=True)
 
@@ -134,13 +139,10 @@ current_predictions['in_top_3'].fillna(0, inplace=True)
 
 # Create low value player flag:
 current_predictions['low_value_player'] = np.where(
-    current_predictions['next_match_value'] < 4.1,  # TODO Save as constant
+    current_predictions['next_match_value'] < LOW_VALUE_PLAYER_UPPER_LIMIT,
     1,
     0
 )
-
-# Rashford unlikely to play next GW
-current_predictions.loc[current_predictions['name'] == 'marcus_rashford', 'GW_plus_1'] = 0
 
 current_predictions['predictions'] = current_predictions[
     ['GW_plus_1', 'GW_plus_2', 'GW_plus_3', 'GW_plus_4', 'GW_plus_5']
@@ -272,13 +274,13 @@ def fpl_team_selection(current_predictions_df, solved_prob):
     test_selection = current_predictions_df[current_predictions_df['name'].isin(chosen_players)]
 
     if test_selection.sum()['in_current_team'] == 15:
-        print("""
+        logging.info("""
         --------------------------------------------------------------
         No transfers made.
         --------------------------------------------------------------
         """)
     else:
-        print(f"""
+        logging.info(f"""
         --------------------------------------------------------------
         {15 - test_selection.sum()['in_current_team']} transfer(s) made.
         
@@ -289,12 +291,14 @@ def fpl_team_selection(current_predictions_df, solved_prob):
         {list(test_selection[test_selection['in_current_team'] == 0]['name'])}
         --------------------------------------------------------------
         """)
-    # print(f"""
-    #     --------------------------------------------------------------
-    #     Low value player:
-    #     {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
-    #     --------------------------------------------------------------
-    # """)
+
+    if test_selection['low_value_player'].sum() != 0:
+        logging.info(f"""
+        --------------------------------------------------------------
+        Low value player:
+        {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
+        --------------------------------------------------------------
+        """)
 
     return test_selection
 
@@ -303,10 +307,6 @@ def fpl_team_selection(current_predictions_df, solved_prob):
 
 solved_problem = solve_fpl_team_selection_problem(current_predictions_df=current_predictions, budget_constraint=budget)
 selected_team = fpl_team_selection(current_predictions_df=current_predictions, solved_prob=solved_problem)
-
-
-# 0% chance of playing
-# selected_team.loc[selected_team['name'] == 'diego_rico', 'predictions'] = -1
 
 
 def solve_starting_11_problem(selected_team_df):
@@ -377,7 +377,7 @@ def starting_11_selection(current_predictions_df, solved_prob):
     test_selection_11 = current_predictions_df[current_predictions_df['name'].isin(chosen_players)]
     test_selection_11.reset_index(drop=True, inplace=True)
 
-    print(f"""
+    logging.info(f"""
         --------------------------------------------------------------
         Recommended captain:
         {test_selection_11[test_selection_11['GW_plus_1'] == test_selection_11['GW_plus_1'].max()]['name'].item()}
