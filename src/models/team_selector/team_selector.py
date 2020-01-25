@@ -155,12 +155,24 @@ budget = get_budget(
 
 # PICK TEAM
 
-def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
+def solve_fpl_team_selection_problem(
+        current_predictions_df,
+        budget_constraint,
+        max_permitted_transfers=1,
+        include_top_3=False,
+        include_low_value_player=False,
+        min_spend=0
+):
     """
     Use PuLP to select the best team of 15 players which maximises total predicted points subject to constraints.
 
     :param current_predictions_df: Predictions DataFrame
     :param budget_constraint: Total budget available
+    :param max_permitted_transfers: Maximum number of transfers allowed
+    :param include_top_3: Include top 3 players in final squad (identified using `in_top_3` column)
+    :param include_low_value_player: Include low value player in squad (identified using `low_value_player` column)
+    :param min_spend: Minimum amount spent on final squad. Use to prevent value of team being too low
+
     :return: Solved LpProblem object
     """
     current_predictions = current_predictions_df.copy()
@@ -202,7 +214,7 @@ def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
 
     # DEFINE CONSTRAINTS
 
-    # Rules of the game constraints:
+    # Rules-of-the-game constraints:
 
     prob += lpSum([costs[p] * player_vars[p] for p in players]) <= budget_constraint, "Total cost less than X"
 
@@ -221,14 +233,17 @@ def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
 
     # Additional constraints:
 
-    # prob += lpSum(in_top_3[p] * player_vars[p] for p in players) == 3, "Top 3 must be included"
+    if include_top_3:
+        prob += lpSum(in_top_3[p] * player_vars[p] for p in players) == 3, "Top 3 must be included"
 
-    # prob += lpSum(low_value_flag[p] * player_vars[p] for p in players) == 1, "Include 1 low value player"
+    if include_low_value_player:
+        prob += lpSum(low_value_flag[p] * player_vars[p] for p in players) == 1, "Include 1 low value player"
 
-    # prob += lpSum([costs[p] * player_vars[p] for p in players]) >= (budget_constraint - 0.4), "Total cost greater than X"
+    if min_spend > 0:
+        prob += lpSum([costs[p] * player_vars[p] for p in players]) >= min_spend, "Total cost greater than X"
 
-    prob += lpSum(GW1_team[p] * player_vars[p] for p in players) >= 14, \
-        "at least X from original team i.e. max (15-X) transfers allowed"
+    prob += lpSum(GW1_team[p] * player_vars[p] for p in players) >= 15 - max_permitted_transfers, \
+        "At least 15-`max_permitted_transfers` players from original team"
 
     # SOLVE OBJECTIVE FUNCTION SUBJECT TO CONSTRAINTS
 
