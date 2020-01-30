@@ -102,12 +102,12 @@ def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.
 
 
 # INTERFACE
-previous_gw = 23
+previous_gw = 24
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw23_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw25_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw23_v3_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw24_v3_lstm_team_selections.parquet')
 previous_team_selection['in_current_team'] = 1
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_current_team']]
@@ -152,7 +152,7 @@ current_predictions['predictions'] = current_predictions[
 budget = get_budget(
     previous_team_selection=previous_team_selection,
     current_predictions_df=current_predictions,
-    money_in_bank=5.1
+    money_in_bank=2.9
 )
 
 
@@ -305,7 +305,13 @@ def fpl_team_selection(current_predictions_df, solved_prob):
 
 # Select starting 11
 
-solved_problem = solve_fpl_team_selection_problem(current_predictions_df=current_predictions, budget_constraint=budget)
+solved_problem = solve_fpl_team_selection_problem(
+    current_predictions_df=current_predictions,
+    budget_constraint=budget,
+    max_permitted_transfers=15,
+    include_top_3=False,
+    include_low_value_player=False
+)
 selected_team = fpl_team_selection(current_predictions_df=current_predictions, solved_prob=solved_problem)
 
 
@@ -425,4 +431,4 @@ gw_selection_df.loc[
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
-gw_selection_df.to_parquet('data/gw_team_selections/gw24_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw25_v3_lstm_team_selections.parquet', index=False)

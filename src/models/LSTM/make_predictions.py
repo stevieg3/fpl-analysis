@@ -72,19 +72,23 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=23, save_file=True)
+full_data = _load_input_data(previous_gw=24, save_file=True)
 
 lstm_model = _load_model_from_h5("src/models/pickles/v3_lstm_model.h5")
 
-previous_gw = 23
+previous_gw = 24
 prediction_season_order = 4
 N_STEPS_IN = 5
+previous_gw_was_double_gw = True
 
 available_players = full_data.copy()[
     (full_data['gw'] == previous_gw) &
     (full_data['season_order'] == prediction_season_order)
 ][['name']].reset_index(drop=True)
 
+if previous_gw_was_double_gw:
+    # Double GW players will be listed twice
+    available_players.drop_duplicates(inplace=True)
 assert available_players['name'].nunique() == len(available_players), 'Duplicate names found in players from last GW'
 available_players['available_for_selection'] = 1
 
@@ -153,16 +157,30 @@ other_player_info = gw_prediction_data.copy()[
     'name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID', 'team_name', 'next_match_value'
 ]]
 
+if previous_gw_was_double_gw:
+    other_player_info.drop_duplicates(subset='name', keep='last', inplace=True)  # Keep most recent for latest price
+
 assert other_player_info.shape[0] == final_predictions.shape[0]
 
 final_predictions = final_predictions.merge(other_player_info, on='name')
 
 assert other_player_info.shape[0] == final_predictions.shape[0]
 
-# Account for double GW:
-for double_gw_team in ['Liverpool', 'West Ham United']:
-    final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] = \
-        final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] * 2
+# # Account for double GW:
+# for double_gw_team in ['Liverpool', 'West Ham United']:
+#     final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] = \
+#         final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] * 2
+
+# Update predictions based on known injury information:
+final_predictions.loc[final_predictions['name'] == 'sadio_mané', 'GW_plus_1'] = 0
+
+final_predictions.loc[final_predictions['name'] == 'todd_cantwell', 'GW_plus_1'] = \
+    final_predictions.loc[final_predictions['name'] == 'todd_cantwell', 'GW_plus_1'] * 0.75
+
+final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_1'] = \
+    final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_1'] * 0.5
+final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_2'] = \
+    final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_2'] * 0.75
 
 final_predictions['sum'] = final_predictions['GW_plus_1'] + \
                            final_predictions['GW_plus_2'] + \
@@ -172,4 +190,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw25_v3_lstm_player_predictions.parquet', index=False)
