@@ -219,7 +219,10 @@ def solve_fpl_team_selection_problem(
 
     # Rules-of-the-game constraints:
 
-    prob += lpSum([costs[p] * player_vars[p] for p in players]) <= budget_constraint, "Total cost less than X"
+    # When max_permitted_transfers == 0, sale of all players may not raise enough funds to buy back same team due to
+    # tax. Hence remove budget constraint so team remains unchanged i.e. no transfers made.
+    if max_permitted_transfers != 0:
+        prob += lpSum([costs[p] * player_vars[p] for p in players]) <= budget_constraint, "Total cost less than X"
 
     prob += lpSum(player_vars[p] for p in players) == 15, "Select 15 players"
 
@@ -308,7 +311,7 @@ def fpl_team_selection(current_predictions_df, solved_prob):
 solved_problem = solve_fpl_team_selection_problem(
     current_predictions_df=current_predictions,
     budget_constraint=budget,
-    max_permitted_transfers=15,
+    max_permitted_transfers=0,
     include_top_3=False,
     include_low_value_player=False
 )
