@@ -72,14 +72,14 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=24, save_file=True)
+full_data = _load_input_data(previous_gw=25, save_file=True)
 
 lstm_model = _load_model_from_h5("src/models/pickles/v3_lstm_model.h5")
 
-previous_gw = 24
+previous_gw = 25
 prediction_season_order = 4
 N_STEPS_IN = 5
-previous_gw_was_double_gw = True
+previous_gw_was_double_gw = False
 
 available_players = full_data.copy()[
     (full_data['gw'] == previous_gw) &
@@ -172,15 +172,13 @@ assert other_player_info.shape[0] == final_predictions.shape[0]
 #         final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] * 2
 
 # Update predictions based on known injury information:
-final_predictions.loc[final_predictions['name'] == 'sadio_mané', 'GW_plus_1'] = 0
 
-final_predictions.loc[final_predictions['name'] == 'todd_cantwell', 'GW_plus_1'] = \
-    final_predictions.loc[final_predictions['name'] == 'todd_cantwell', 'GW_plus_1'] * 0.75
+final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_1'] = 0
+final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_2'] = 0
 
-final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_1'] = \
-    final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_1'] * 0.5
-final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_2'] = \
-    final_predictions.loc[final_predictions['name'] == 'tammy_abraham', 'GW_plus_2'] * 0.75
+final_predictions.loc[final_predictions['name'] == 'john_lundstram', 'GW_plus_1'] = 0
+final_predictions.loc[final_predictions['name'] == 'john_lundstram', 'GW_plus_2'] = 0
+final_predictions.loc[final_predictions['name'] == 'john_lundstram', 'GW_plus_3'] = 0
 
 final_predictions['sum'] = final_predictions['GW_plus_1'] + \
                            final_predictions['GW_plus_2'] + \
@@ -190,4 +188,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw25_v3_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw26_v3_lstm_player_predictions.parquet', index=False)

@@ -102,12 +102,12 @@ def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.
 
 
 # INTERFACE
-previous_gw = 24
+previous_gw = 25
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw25_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw25_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw26_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw24_v3_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw25_v3_lstm_team_selections.parquet')
 previous_team_selection['in_current_team'] = 1
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_current_team']]
@@ -152,7 +152,7 @@ current_predictions['predictions'] = current_predictions[
 budget = get_budget(
     previous_team_selection=previous_team_selection,
     current_predictions_df=current_predictions,
-    money_in_bank=2.9
+    money_in_bank=1.1
 )
 
 
@@ -278,30 +278,37 @@ def fpl_team_selection(current_predictions_df, solved_prob):
 
     if test_selection.sum()['in_current_team'] == 15:
         logging.info("""
-        --------------------------------------------------------------
-        No transfers made.
-        --------------------------------------------------------------
+    --------------------------------------------------------------
+    No transfers made.
+    --------------------------------------------------------------
         """)
     else:
         logging.info(f"""
-        --------------------------------------------------------------
-        {15 - test_selection.sum()['in_current_team']} transfer(s) made.
-        
-        Players out:
-        {list(set(previous_team_selection_names['name']) - set(test_selection['name']))}
-        
-        Players in:
-        {list(test_selection[test_selection['in_current_team'] == 0]['name'])}
-        --------------------------------------------------------------
+    --------------------------------------------------------------
+    {15 - test_selection.sum()['in_current_team']} transfer(s) made.
+    
+    Players out:
+    {list(set(previous_team_selection_names['name']) - set(test_selection['name']))}
+    
+    Players in:
+    {list(test_selection[test_selection['in_current_team'] == 0]['name'])}
+    --------------------------------------------------------------
         """)
 
     if test_selection['low_value_player'].sum() != 0:
         logging.info(f"""
-        --------------------------------------------------------------
-        Low value player:
-        {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
-        --------------------------------------------------------------
+    --------------------------------------------------------------
+    Low value player:
+    {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
+    --------------------------------------------------------------
         """)
+
+    logging.info(f"""
+    --------------------------------------------------------------
+    Total predicted points next 5 GWs:
+    {int(test_selection['predictions'].sum())}
+    --------------------------------------------------------------
+    """)
 
     return test_selection
 
@@ -311,7 +318,7 @@ def fpl_team_selection(current_predictions_df, solved_prob):
 solved_problem = solve_fpl_team_selection_problem(
     current_predictions_df=current_predictions,
     budget_constraint=budget,
-    max_permitted_transfers=0,
+    max_permitted_transfers=1,
     include_top_3=False,
     include_low_value_player=False
 )
@@ -387,13 +394,13 @@ def starting_11_selection(current_predictions_df, solved_prob):
     test_selection_11.reset_index(drop=True, inplace=True)
 
     logging.info(f"""
-        --------------------------------------------------------------
-        Recommended captain:
-        {test_selection_11[test_selection_11['GW_plus_1'] == test_selection_11['GW_plus_1'].max()]['name'].item()}
-    
-        Expected points:
-        {test_selection_11['GW_plus_1'].sum() + test_selection_11.loc[0, 'GW_plus_1']}
-        --------------------------------------------------------------
+    --------------------------------------------------------------
+    Recommended captain:
+    {test_selection_11[test_selection_11['GW_plus_1'] == test_selection_11['GW_plus_1'].max()]['name'].item()}
+
+    Expected points:
+    {test_selection_11['GW_plus_1'].sum() + test_selection_11.loc[0, 'GW_plus_1']}
+    --------------------------------------------------------------
     """)
 
     return test_selection_11
@@ -434,4 +441,8 @@ gw_selection_df.loc[
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
-gw_selection_df.to_parquet('data/gw_team_selections/gw25_v3_lstm_team_selections.parquet', index=False)
+# Overwrite starting 11 selection:
+gw_selection_df.loc[gw_selection_df['name'] == 'dominic_calvert_lewin', 'starting_11'] = 1
+gw_selection_df.loc[gw_selection_df['name'] == 'todd_cantwell', 'starting_11'] = 0
+
+gw_selection_df.to_parquet('data/gw_team_selections/gw26_v3_lstm_team_selections.parquet', index=False)
