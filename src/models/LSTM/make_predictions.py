@@ -72,11 +72,11 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=25, save_file=True)
+full_data = _load_input_data(previous_gw=26, save_file=True)
 
 lstm_model = _load_model_from_h5("src/models/pickles/v3_lstm_model.h5")
 
-previous_gw = 25
+previous_gw = 26
 prediction_season_order = 4
 N_STEPS_IN = 5
 previous_gw_was_double_gw = False
@@ -173,12 +173,11 @@ assert other_player_info.shape[0] == final_predictions.shape[0]
 
 # Update predictions based on known injury information:
 
-final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_1'] = 0
-final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_2'] = 0
+final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_1'] = \
+    final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_1'] * 0.5
 
-final_predictions.loc[final_predictions['name'] == 'john_lundstram', 'GW_plus_1'] = 0
-final_predictions.loc[final_predictions['name'] == 'john_lundstram', 'GW_plus_2'] = 0
-final_predictions.loc[final_predictions['name'] == 'john_lundstram', 'GW_plus_3'] = 0
+for gw in range(1, 6):
+    final_predictions.loc[final_predictions['name'] == 'heung-min_son', f'GW_plus_{gw}'] = 0
 
 final_predictions['sum'] = final_predictions['GW_plus_1'] + \
                            final_predictions['GW_plus_2'] + \
@@ -188,4 +187,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw26_v3_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw27_v3_lstm_player_predictions.parquet', index=False)

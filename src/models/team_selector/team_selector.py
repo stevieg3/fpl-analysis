@@ -102,12 +102,12 @@ def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.
 
 
 # INTERFACE
-previous_gw = 25
+previous_gw = 26
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw25_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw26_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw26_v3_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw27_v3_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw25_v3_lstm_team_selections.parquet')
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw26_v3_lstm_team_selections.parquet')
 previous_team_selection['in_current_team'] = 1
 
 previous_team_selection_names = previous_team_selection.copy()[['name', 'in_current_team']]
@@ -441,8 +441,4 @@ gw_selection_df.loc[
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
-# Overwrite starting 11 selection:
-gw_selection_df.loc[gw_selection_df['name'] == 'dominic_calvert_lewin', 'starting_11'] = 1
-gw_selection_df.loc[gw_selection_df['name'] == 'todd_cantwell', 'starting_11'] = 0
-
-gw_selection_df.to_parquet('data/gw_team_selections/gw26_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw27_v3_lstm_team_selections.parquet', index=False)
