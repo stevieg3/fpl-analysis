@@ -16,8 +16,8 @@ from src.models.constants import \
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
 # MinMaxScalar used in training
-mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_lstm_v3.pickle')
-COLUMNS_TO_SCALE = _load_model_from_pickle('src/models/pickles/min_max_scalar_columns_v3.pickle')
+mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_lstm_v4.pickle')
+COLUMNS_TO_SCALE = _load_model_from_pickle('src/models/pickles/min_max_scalar_columns_v4.pickle')
 
 
 def _load_input_data(previous_gw, save_file=False):
@@ -72,14 +72,20 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=26, save_file=True)
+full_data = _load_input_data(previous_gw=28, save_file=True)
 
-lstm_model = _load_model_from_h5("src/models/pickles/v3_lstm_model.h5")
+lstm_model = _load_model_from_h5("src/models/pickles/v4_lstm_model.h5")
 
-previous_gw = 26
+previous_gw = 28
 prediction_season_order = 4
 N_STEPS_IN = 5
 previous_gw_was_double_gw = False
+
+# Hacky way of getting missing players in previous GW in current predictions. Set last available GW to previous GW
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Manchester City'), 'gw'] = previous_gw
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Aston Villa'), 'gw'] = previous_gw
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Sheffield United'), 'gw'] = previous_gw
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Arsenal'), 'gw'] = previous_gw
 
 available_players = full_data.copy()[
     (full_data['gw'] == previous_gw) &
@@ -166,15 +172,18 @@ final_predictions = final_predictions.merge(other_player_info, on='name')
 
 assert other_player_info.shape[0] == final_predictions.shape[0]
 
-# # Account for double GW:
-# for double_gw_team in ['Liverpool', 'West Ham United']:
-#     final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] = \
-#         final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] * 2
+# Account for double GW:
+for double_gw_team in ['Manchester City', 'Arsenal']:
+    final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] = \
+        final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] * 2
 
 # Update predictions based on known injury information:
 
-final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_1'] = \
-    final_predictions.loc[final_predictions['name'] == 'raheem_sterling', 'GW_plus_1'] * 0.5
+final_predictions.loc[final_predictions['name'] == 'adama_traoré', 'GW_plus_1'] = \
+    final_predictions.loc[final_predictions['name'] == 'adama_traoré', 'GW_plus_1'] * 0.75
+
+final_predictions.loc[final_predictions['name'] == 'aaron_wan-bissaka', 'GW_plus_1'] = \
+    final_predictions.loc[final_predictions['name'] == 'aaron_wan-bissaka', 'GW_plus_1'] * 0.75
 
 for gw in range(1, 6):
     final_predictions.loc[final_predictions['name'] == 'heung-min_son', f'GW_plus_{gw}'] = 0
@@ -187,4 +196,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw27_v3_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw29_v4_lstm_player_predictions.parquet', index=False)
