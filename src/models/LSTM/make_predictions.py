@@ -16,8 +16,8 @@ from src.models.constants import \
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
 # MinMaxScalar used in training
-mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_lstm_v3.pickle')
-COLUMNS_TO_SCALE = _load_model_from_pickle('src/models/pickles/min_max_scalar_columns_v3.pickle')
+mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_lstm_v4.pickle')
+COLUMNS_TO_SCALE = _load_model_from_pickle('src/models/pickles/min_max_scalar_columns_v4.pickle')
 
 
 def _load_input_data(previous_gw, save_file=False):
@@ -72,19 +72,29 @@ def _load_model_from_h5(model_filepath):
     return model
 
 
-full_data = _load_input_data(previous_gw=23, save_file=True)
+full_data = _load_input_data(previous_gw=28, save_file=True)
 
-lstm_model = _load_model_from_h5("src/models/pickles/v3_lstm_model.h5")
+lstm_model = _load_model_from_h5("src/models/pickles/v4_lstm_model.h5")
 
-previous_gw = 23
+previous_gw = 28
 prediction_season_order = 4
 N_STEPS_IN = 5
+previous_gw_was_double_gw = False
+
+# Hacky way of getting missing players in previous GW in current predictions. Set last available GW to previous GW
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Manchester City'), 'gw'] = previous_gw
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Aston Villa'), 'gw'] = previous_gw
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Sheffield United'), 'gw'] = previous_gw
+full_data.loc[(full_data['gw'] == previous_gw-1) & (full_data['team_name'] == 'Arsenal'), 'gw'] = previous_gw
 
 available_players = full_data.copy()[
     (full_data['gw'] == previous_gw) &
     (full_data['season_order'] == prediction_season_order)
 ][['name']].reset_index(drop=True)
 
+if previous_gw_was_double_gw:
+    # Double GW players will be listed twice
+    available_players.drop_duplicates(inplace=True)
 assert available_players['name'].nunique() == len(available_players), 'Duplicate names found in players from last GW'
 available_players['available_for_selection'] = 1
 
@@ -153,6 +163,9 @@ other_player_info = gw_prediction_data.copy()[
     'name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID', 'team_name', 'next_match_value'
 ]]
 
+if previous_gw_was_double_gw:
+    other_player_info.drop_duplicates(subset='name', keep='last', inplace=True)  # Keep most recent for latest price
+
 assert other_player_info.shape[0] == final_predictions.shape[0]
 
 final_predictions = final_predictions.merge(other_player_info, on='name')
@@ -160,9 +173,20 @@ final_predictions = final_predictions.merge(other_player_info, on='name')
 assert other_player_info.shape[0] == final_predictions.shape[0]
 
 # Account for double GW:
-for double_gw_team in ['Liverpool', 'West Ham United']:
+for double_gw_team in ['Manchester City', 'Arsenal']:
     final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] = \
         final_predictions.loc[final_predictions['team_name'] == double_gw_team, 'GW_plus_1'] * 2
+
+# Update predictions based on known injury information:
+
+final_predictions.loc[final_predictions['name'] == 'adama_traoré', 'GW_plus_1'] = \
+    final_predictions.loc[final_predictions['name'] == 'adama_traoré', 'GW_plus_1'] * 0.75
+
+final_predictions.loc[final_predictions['name'] == 'aaron_wan-bissaka', 'GW_plus_1'] = \
+    final_predictions.loc[final_predictions['name'] == 'aaron_wan-bissaka', 'GW_plus_1'] * 0.75
+
+for gw in range(1, 6):
+    final_predictions.loc[final_predictions['name'] == 'heung-min_son', f'GW_plus_{gw}'] = 0
 
 final_predictions['sum'] = final_predictions['GW_plus_1'] + \
                            final_predictions['GW_plus_2'] + \
@@ -172,4 +196,4 @@ final_predictions['sum'] = final_predictions['GW_plus_1'] + \
 
 final_predictions.sort_values('sum', ascending=False, inplace=True)
 
-final_predictions.to_parquet('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet', index=False)
+final_predictions.to_parquet('data/gw_predictions/gw29_v4_lstm_player_predictions.parquet', index=False)

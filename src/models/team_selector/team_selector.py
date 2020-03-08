@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 import numpy as np
 from pulp import \
@@ -7,8 +9,12 @@ from pulp import \
     LpVariable, \
     LpInteger
 
-from src.models.constants import SELL_ON_TAX
+from src.models.constants import \
+    SELL_ON_TAX,\
+    LOW_VALUE_PLAYER_UPPER_LIMIT
 from src.models.utils import round_down_to_nearest_10th
+
+logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
 
 def load_player_predictions(prediction_filepath):
@@ -90,26 +96,26 @@ def get_budget(previous_team_selection, current_predictions_df, money_in_bank=0.
 
     budget = budget_calculation_df['selling_price'].sum()
     budget += money_in_bank
+    budget = np.round(budget, decimals=1)
 
     return budget
 
 
 # INTERFACE
-previous_gw = 23
+previous_gw = 28
 
-previous_predictions = load_player_predictions('data/gw_predictions/gw23_v3_lstm_player_predictions.parquet')
-current_predictions = load_player_predictions('data/gw_predictions/gw24_v3_lstm_player_predictions.parquet')
+previous_predictions = load_player_predictions('data/gw_predictions/gw28_v4_lstm_player_predictions.parquet')
+current_predictions = load_player_predictions('data/gw_predictions/gw29_v4_lstm_player_predictions.parquet')
 
-previous_team_selection = pd.read_parquet('data/gw_team_selections/gw23_v3_lstm_team_selections.parquet')
-previous_team_selection['in_gw_1_team'] = 1  # TODO Rename column to something else (replace everywhere)
+previous_team_selection = pd.read_parquet('data/gw_team_selections/gw28_v3_lstm_team_selections.parquet')
+previous_team_selection['in_current_team'] = 1
 
-previous_team_selection_names = previous_team_selection.copy()[['name', 'in_gw_1_team']]
+previous_team_selection_names = previous_team_selection.copy()[['name', 'in_current_team']]
 
 current_predictions_for_prev_team = current_predictions.merge(previous_team_selection_names, on='name', how='inner')
 
 if current_predictions_for_prev_team['predictions'].isnull().sum() != 0:
-    # TODO Log this event
-    print('Some players missing')
+    logging.info('Some players missing')
     # Players not playing in next GW still appear but have null values for points predictions and next match value
     current_predictions.dropna(axis=0, how='any', inplace=True)
 
@@ -123,8 +129,8 @@ if current_predictions_for_prev_team['predictions'].isnull().sum() != 0:
 
 
 current_predictions = current_predictions.merge(previous_team_selection_names, on='name', how='left')
-current_predictions['in_gw_1_team'] = current_predictions['in_gw_1_team'].fillna(0)
-assert current_predictions['in_gw_1_team'].sum() == 15
+current_predictions['in_current_team'] = current_predictions['in_current_team'].fillna(0)
+assert current_predictions['in_current_team'].sum() == 15
 
 
 # Create top 3 flag:
@@ -133,13 +139,10 @@ current_predictions['in_top_3'].fillna(0, inplace=True)
 
 # Create low value player flag:
 current_predictions['low_value_player'] = np.where(
-    current_predictions['next_match_value'] < 4.1,  # TODO Save as constant
+    current_predictions['next_match_value'] < LOW_VALUE_PLAYER_UPPER_LIMIT,
     1,
     0
 )
-
-# Rashford unlikely to play next GW
-current_predictions.loc[current_predictions['name'] == 'marcus_rashford', 'GW_plus_1'] = 0
 
 current_predictions['predictions'] = current_predictions[
     ['GW_plus_1', 'GW_plus_2', 'GW_plus_3', 'GW_plus_4', 'GW_plus_5']
@@ -149,18 +152,30 @@ current_predictions['predictions'] = current_predictions[
 budget = get_budget(
     previous_team_selection=previous_team_selection,
     current_predictions_df=current_predictions,
-    money_in_bank=5.1
+    money_in_bank=1.6
 )
 
 
 # PICK TEAM
 
-def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
+def solve_fpl_team_selection_problem(
+        current_predictions_df,
+        budget_constraint,
+        max_permitted_transfers=1,
+        include_top_3=False,
+        include_low_value_player=False,
+        min_spend=0
+):
     """
     Use PuLP to select the best team of 15 players which maximises total predicted points subject to constraints.
 
     :param current_predictions_df: Predictions DataFrame
     :param budget_constraint: Total budget available
+    :param max_permitted_transfers: Maximum number of transfers allowed
+    :param include_top_3: Include top 3 players in final squad (identified using `in_top_3` column)
+    :param include_low_value_player: Include low value player in squad (identified using `low_value_player` column)
+    :param min_spend: Minimum amount spent on final squad. Use to prevent value of team being too low
+
     :return: Solved LpProblem object
     """
     current_predictions = current_predictions_df.copy()
@@ -187,7 +202,7 @@ def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
 
     MID_flag = dict(zip(current_predictions['name'], current_predictions['position_MID']))
 
-    GW1_team = dict(zip(current_predictions['name'], current_predictions['in_gw_1_team']))
+    current_team = dict(zip(current_predictions['name'], current_predictions['in_current_team']))
 
     in_top_3 = dict(zip(current_predictions['name'], current_predictions['in_top_3']))
 
@@ -202,9 +217,12 @@ def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
 
     # DEFINE CONSTRAINTS
 
-    # Rules of the game constraints:
+    # Rules-of-the-game constraints:
 
-    prob += lpSum([costs[p] * player_vars[p] for p in players]) <= budget_constraint, "Total cost less than X"
+    # When max_permitted_transfers == 0, sale of all players may not raise enough funds to buy back same team due to
+    # tax. Hence remove budget constraint so team remains unchanged i.e. no transfers made.
+    if max_permitted_transfers != 0:
+        prob += lpSum([costs[p] * player_vars[p] for p in players]) <= budget_constraint, "Total cost less than X"
 
     prob += lpSum(player_vars[p] for p in players) == 15, "Select 15 players"
 
@@ -221,14 +239,17 @@ def solve_fpl_team_selection_problem(current_predictions_df, budget_constraint):
 
     # Additional constraints:
 
-    # prob += lpSum(in_top_3[p] * player_vars[p] for p in players) == 3, "Top 3 must be included"
+    if include_top_3:
+        prob += lpSum(in_top_3[p] * player_vars[p] for p in players) == 3, "Top 3 must be included"
 
-    # prob += lpSum(low_value_flag[p] * player_vars[p] for p in players) == 1, "Include 1 low value player"
+    if include_low_value_player:
+        prob += lpSum(low_value_flag[p] * player_vars[p] for p in players) == 1, "Include 1 low value player"
 
-    # prob += lpSum([costs[p] * player_vars[p] for p in players]) >= (budget_constraint - 0.4), "Total cost greater than X"
+    if min_spend > 0:
+        prob += lpSum([costs[p] * player_vars[p] for p in players]) >= min_spend, "Total cost greater than X"
 
-    prob += lpSum(GW1_team[p] * player_vars[p] for p in players) >= 14, \
-        "at least X from original team i.e. max (15-X) transfers allowed"
+    prob += lpSum(current_team[p] * player_vars[p] for p in players) >= 15 - max_permitted_transfers, \
+        "At least 15-`max_permitted_transfers` players from original team"
 
     # SOLVE OBJECTIVE FUNCTION SUBJECT TO CONSTRAINTS
 
@@ -255,42 +276,53 @@ def fpl_team_selection(current_predictions_df, solved_prob):
 
     test_selection = current_predictions_df[current_predictions_df['name'].isin(chosen_players)]
 
-    if test_selection.sum()['in_gw_1_team'] == 15:
-        print("""
-        --------------------------------------------------------------
-        No transfers made.
-        --------------------------------------------------------------
+    if test_selection.sum()['in_current_team'] == 15:
+        logging.info("""
+    --------------------------------------------------------------
+    No transfers made.
+    --------------------------------------------------------------
         """)
     else:
-        print(f"""
-        --------------------------------------------------------------
-        {15 - test_selection.sum()['in_gw_1_team']} transfer(s) made.
-        
-        Players out:
-        {list(set(previous_team_selection_names['name']) - set(test_selection['name']))}
-        
-        Players in:
-        {list(test_selection[test_selection['in_gw_1_team'] == 0]['name'])}
-        --------------------------------------------------------------
+        logging.info(f"""
+    --------------------------------------------------------------
+    {15 - test_selection.sum()['in_current_team']} transfer(s) made.
+    
+    Players out:
+    {list(set(previous_team_selection_names['name']) - set(test_selection['name']))}
+    
+    Players in:
+    {list(test_selection[test_selection['in_current_team'] == 0]['name'])}
+    --------------------------------------------------------------
         """)
-    # print(f"""
-    #     --------------------------------------------------------------
-    #     Low value player:
-    #     {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
-    #     --------------------------------------------------------------
-    # """)
+
+    if test_selection['low_value_player'].sum() != 0:
+        logging.info(f"""
+    --------------------------------------------------------------
+    Low value player:
+    {test_selection[test_selection['low_value_player'] == 1]['name'].item()}
+    --------------------------------------------------------------
+        """)
+
+    logging.info(f"""
+    --------------------------------------------------------------
+    Total predicted points next 5 GWs:
+    {int(test_selection['predictions'].sum())}
+    --------------------------------------------------------------
+    """)
 
     return test_selection
 
 
 # Select starting 11
 
-solved_problem = solve_fpl_team_selection_problem(current_predictions_df=current_predictions, budget_constraint=budget)
+solved_problem = solve_fpl_team_selection_problem(
+    current_predictions_df=current_predictions,
+    budget_constraint=budget,
+    max_permitted_transfers=2,
+    include_top_3=False,
+    include_low_value_player=False
+)
 selected_team = fpl_team_selection(current_predictions_df=current_predictions, solved_prob=solved_problem)
-
-
-# 0% chance of playing
-# selected_team.loc[selected_team['name'] == 'diego_rico', 'predictions'] = -1
 
 
 def solve_starting_11_problem(selected_team_df):
@@ -361,14 +393,14 @@ def starting_11_selection(current_predictions_df, solved_prob):
     test_selection_11 = current_predictions_df[current_predictions_df['name'].isin(chosen_players)]
     test_selection_11.reset_index(drop=True, inplace=True)
 
-    print(f"""
-        --------------------------------------------------------------
-        Recommended captain:
-        {test_selection_11[test_selection_11['GW_plus_1'] == test_selection_11['GW_plus_1'].max()]['name'].item()}
-    
-        Expected points:
-        {test_selection_11['GW_plus_1'].sum() + test_selection_11.loc[0, 'GW_plus_1']}
-        --------------------------------------------------------------
+    logging.info(f"""
+    --------------------------------------------------------------
+    Recommended captain:
+    {test_selection_11[test_selection_11['GW_plus_1'] == test_selection_11['GW_plus_1'].max()]['name'].item()}
+
+    Expected points:
+    {test_selection_11['GW_plus_1'].sum() + test_selection_11.loc[0, 'GW_plus_1']}
+    --------------------------------------------------------------
     """)
 
     return test_selection_11
@@ -398,15 +430,15 @@ gw_selection_df = gw_selection_df.merge(
 )
 
 gw_selection_df.loc[
-    (gw_selection_df['purchase_price'].isnull()) & (gw_selection_df['in_gw_1_team'] == 0),
+    (gw_selection_df['purchase_price'].isnull()) & (gw_selection_df['in_current_team'] == 0),
     'purchase_price'
 ] = gw_selection_df['next_match_value']
 
 gw_selection_df.loc[
-    (gw_selection_df['gw_introduced_in'].isnull()) & (gw_selection_df['in_gw_1_team'] == 0),
+    (gw_selection_df['gw_introduced_in'].isnull()) & (gw_selection_df['in_current_team'] == 0),
     'gw_introduced_in'
 ] = previous_gw + 1
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
-gw_selection_df.to_parquet('data/gw_team_selections/gw24_v3_lstm_team_selections.parquet', index=False)
+gw_selection_df.to_parquet('data/gw_team_selections/gw29_v3_lstm_team_selections.parquet', index=False)

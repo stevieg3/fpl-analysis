@@ -5,7 +5,7 @@ import os
 
 os.chdir('/Users/stevengeorge/Documents/Github/fpl-analysis')  # TODO Fix paths
 
-from src.models.make_predictions import make_predictions
+from src.models.LightGBM.make_predictions import make_predictions
 
 
 class TestMakePredictions(unittest.TestCase):

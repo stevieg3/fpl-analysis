@@ -98,12 +98,12 @@ training_subset_df[COLUMNS_TO_SCALE] = mms.fit_transform(training_subset_df[COLU
 
 pickle.dump(
     mms,
-    open('src/models/pickles/min_max_scalar_lstm_v3.pickle', 'wb')
+    open('src/models/pickles/min_max_scalar_lstm_v4.pickle', 'wb')
 )
 
 pickle.dump(
     COLUMNS_TO_SCALE,
-    open('src/models/pickles/min_max_scalar_columns_v3.pickle', 'wb')
+    open('src/models/pickles/min_max_scalar_columns_v4.pickle', 'wb')
 )
 
 
@@ -201,7 +201,7 @@ es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
 model.fit(X, y, batch_size=60, epochs=100, verbose=1, validation_data=(X_val, y_val), callbacks=[es])
 
 
-# FIT ON FULL TRAINING SET WITH 20 EPOCHS (EARLY STOPPED @ 29)
+# FIT ON FULL TRAINING SET WITH 63 EPOCHS (EARLY STOPPED @ 72)
 
 # I) TRANSFORM FULL TRAINING DATA INTO REQUIRED SHAPE FOR LSTM
 
@@ -275,8 +275,8 @@ model.compile(optimizer='adam', loss='mse')
 
 # III) FIT MODEL
 
-model.fit(X, y, batch_size=60, epochs=20, verbose=1)
+model.fit(X, y, batch_size=60, epochs=63, verbose=1)
 
 
 # SAVE MODEL AND ARCHITECTURE TO SINGLE FILE
-model.save("src/models/pickles/v3_lstm_model.h5")
+model.save("src/models/pickles/v4_lstm_model.h5")
