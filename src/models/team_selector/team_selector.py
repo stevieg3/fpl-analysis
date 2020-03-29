@@ -441,4 +441,5 @@ gw_selection_df.loc[
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
+# TODO Replace with S3 data write
 gw_selection_df.to_parquet('data/gw_team_selections/gw29_v3_lstm_team_selections.parquet', index=False)

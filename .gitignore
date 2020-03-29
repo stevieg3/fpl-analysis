@@ -8,6 +8,9 @@
 */processed
 */raw
 *train_test_data/
+*.env
+Deploy to AWS instructions.md
+Useful commands.md
 
 *.ipynb_checkpoints
 *.idea

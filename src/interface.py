@@ -2,6 +2,13 @@ from src.models.LSTM.make_predictions import \
     load_live_data, \
     load_retro_data, \
     LSTMPlayerPredictor
+from src.models.constants import \
+    SEASON_ORDER_DICT
+from src.data.s3_utilities import \
+    S3_BUCKET_PATH, \
+    GW_PREDICTIONS_SUFFIX, \
+    GW_RETRO_PREDICTIONS_SUFFIX, \
+    write_dataframe_to_s3
 
 
 def fpl_scorer(previous_gw, prediction_season_order, live_run=False):
@@ -20,16 +27,20 @@ def fpl_scorer(previous_gw, prediction_season_order, live_run=False):
     gw_prediction_data = lstm_pred.prepare_data_for_lstm(full_data=full_data)
     final_predictions = lstm_pred.make_player_predictions(gw_prediction_data=gw_prediction_data)
 
+    reversed_season_order_dict = {v: k for k, v in SEASON_ORDER_DICT.items()}
+    final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
+    final_predictions['gw'] = previous_gw + 1  # TODO Need to account for GW 38
+    final_predictions['model'] = 'lstm_v4'
+
     if live_run:
-        final_predictions.to_parquet(
-            f'data/gw_predictions/gw{previous_gw+1}_v4_lstm_player_predictions.parquet',
-            index=False
+        write_dataframe_to_s3(
+            df=final_predictions,
+            s3_root_path=S3_BUCKET_PATH + GW_PREDICTIONS_SUFFIX,
+            partition_cols=['season', 'gw']
         )
     else:
-        final_predictions.to_parquet(
-            'data/gw_retro_predictions/gw{}_season_{}_v4_lstm_player_predictions.parquet'.format(
-                previous_gw+1,
-                prediction_season_order
-            ),
-            index=False
+        write_dataframe_to_s3(
+            df=final_predictions,
+            s3_root_path=S3_BUCKET_PATH + GW_RETRO_PREDICTIONS_SUFFIX,
+            partition_cols=['season', 'gw']
         )

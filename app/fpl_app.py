@@ -30,13 +30,3 @@ def api():
 if __name__ == '__main__':
     # need debug and threaded parameters to prevent TensorFlow error
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=False)
-
-"""
-curl -X GET "http://0.0.0.0:5000/api" -H "Content-Type: application/json" --data '{"previous_gw":"3","prediction_season_order":"2","live_run":"False"}'
-
-gunicorn app.fpl_app:app --bind 0.0.0.0:5000
-
-docker build -t stevengeorge3/fpl-analysis -f app/Dockerfile .
-
-docker run -p 5000:5000 stevengeorge3/fpl-analysis
-"""
