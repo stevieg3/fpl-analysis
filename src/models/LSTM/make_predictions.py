@@ -1,5 +1,6 @@
 import logging
 import pandas as pd
+import numpy as np
 
 from keras.models import load_model
 
@@ -133,9 +134,12 @@ class LSTMPlayerPredictor:
         - Removes any data after, and not including, specified `previous_gw` in `prediction_season_order`
         - Filters out any players not available for selection (i.e. cannot make predictions for)
         - Removes any players with insufficient historical GW data needed as an input to LSTM
+        - Scale feature values as done in model training
+        - Only keep historic player records as needed by LTSM
+        - Drop any unused features
 
         :param full_data: DataFrame of player season-gameweek data as returned by `load_live_data` or `load_retro_data`
-        :return: DataFrame of player season-gameweek data to be inputted into LSTM
+        :return: List of player names in prediction data and list of corresponding LSTM input data as a DataFrame
         """
         full_data = full_data.copy()
 
@@ -187,77 +191,94 @@ class LSTMPlayerPredictor:
 
         logging.info(f"Player data shape after removing players with insufficient GW data: {gw_prediction_data.shape}")
 
-        return gw_prediction_data
+        # Scale values as done in training
+        gw_prediction_data[COLUMNS_TO_SCALE] = mms.transform(gw_prediction_data[COLUMNS_TO_SCALE])
 
-    def make_player_predictions(self, gw_prediction_data):
+        # Only keep records needed for LSTM
+        gw_prediction_data = gw_prediction_data.groupby('name').tail(self.N_STEPS_IN)
+        logging.info(f"Player data shape after only keeping records needed for LSTM: {gw_prediction_data.shape}")
+
+        # Only keep features needed for LSTM and name column
+        gw_prediction_data.drop(
+            [column for column in COLUMNS_TO_DROP_FOR_TRAINING if column != 'name'],
+            axis=1,
+            inplace=True
+        )
+
+        # Get list of player names in prediction set and list of corresponding input data as a DataFrame
+        player_list = []
+        player_data_list = []
+
+        for player, player_data in gw_prediction_data.groupby('name'):
+            player_list.append(player)
+            player_data_list.append(player_data.drop('name', axis=1))
+
+        return player_list, player_data_list
+
+    def make_player_predictions(self, player_data_list):
         # TODO Add functionality to adjust scores of certain players e.g. by using a JSON input
         """
         Make player predictions for next 5 gameweeks using LSTM model.
 
-        :param gw_prediction_data: LSTM input DataFrame as returned by `prepare_data_for_lstm`
-        :return: DataFrame containing individual player predictions sorted by total points predicted.
+        :param player_list: List of player names in prediction data as returned by `prepare_data_for_lstm`
+        :param player_data_list: List of corresponding player input data for player names in `player_list`.
+        As returned by `prepare_data_for_lstm`
+
+        :return: DataFrame containing individual player predictions.
         """
-        final_predictions = pd.DataFrame()
+        input_array = np.concatenate(
+            # Make each player player DataFrame into a 3D array
+            [df.values.reshape(1, self.N_STEPS_IN, df.values.shape[1]) for df in player_data_list],
+            axis=0
+        )
 
-        for player in gw_prediction_data['name'].unique():
+        logging.info(f"LSTM input array shape: {input_array.shape}")
 
-            player_df = gw_prediction_data[gw_prediction_data['name'] == player]
+        raw_predictions = lstm_model.predict(input_array)
 
-            player_df = player_df.tail(self.N_STEPS_IN)
+        final_predictions = pd.DataFrame(
+            raw_predictions,
+            columns=['GW_plus_1', 'GW_plus_2', 'GW_plus_3', 'GW_plus_4', 'GW_plus_5']
+        )
 
-            player_df[COLUMNS_TO_SCALE] = mms.transform(player_df[COLUMNS_TO_SCALE])
-
-            player_df.drop(
-                COLUMNS_TO_DROP_FOR_TRAINING,
-                axis=1,
-                inplace=True
-            )
-
-            X_player_df = player_df.values.reshape(1, self.N_STEPS_IN, player_df.shape[1])
-
-            predictions = lstm_model.predict(X_player_df).reshape(5)
-
-            prediction_df = pd.DataFrame(
-                {
-                    'name': [player],
-                    'GW_plus_1': [predictions[0]],
-                    'GW_plus_2': [predictions[1]],
-                    'GW_plus_3': [predictions[2]],
-                    'GW_plus_4': [predictions[3]],
-                    'GW_plus_5': [predictions[4]]
-                }
-            )
-
-            final_predictions = final_predictions.append(prediction_df)
-
-        other_player_info = gw_prediction_data.copy()[
-            (gw_prediction_data['gw'] == self.previous_gw) &
-            (gw_prediction_data['season_order'] == self.prediction_season_order)
-        ][[
-            'name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID', 'team_name', 'next_match_value'
-        ]]
-
-        if self.previous_gw_was_double_gw:
-            # Keep most recent for latest price
-            other_player_info.drop_duplicates(subset='name', keep='last', inplace=True)
-
-        assert other_player_info.shape[0] == final_predictions.shape[0]
-
-        final_predictions = final_predictions.merge(other_player_info, on='name')
-
-        assert other_player_info.shape[0] == final_predictions.shape[0]  # TODO Are both assert statements needed?
-
-        final_predictions['sum'] = final_predictions['GW_plus_1'] + \
+        final_predictions['sum'] = \
+            final_predictions['GW_plus_1'] + \
             final_predictions['GW_plus_2'] + \
             final_predictions['GW_plus_3'] + \
             final_predictions['GW_plus_4'] + \
             final_predictions['GW_plus_5']
 
-        final_predictions.sort_values('sum', ascending=False, inplace=True)
-
         return final_predictions
 
+    def format_predictions(self, player_list, final_predictions, full_data):
+        """
+        Format predictions returned by `make_player_predictions()` by sorting and appending additional columns.
 
-# full_data = load_live_data(previous_gw=28, save_file=True)  # TODO Live file load
+        :param final_predictions: DataFrame of final predictions as returned by `make_player_predictions()`
+        :param full_data: DataFrame of player season-gameweek data as returned by `load_live_data` or `load_retro_data`
+        :param player_list: List of players in same order as `final_predictions`
+        :return: Formatted DataFrame of player predictions
+        """
 
-# final_predictions.to_parquet('data/gw_predictions/gw29_v4_lstm_player_predictions.parquet', index=False)
+        final_predictions_copy = final_predictions.copy()
+        final_predictions_copy['name'] = player_list
+
+        other_player_info = full_data.copy()[
+            (full_data['gw'] == self.previous_gw) &
+            (full_data['season_order'] == self.prediction_season_order)
+        ][
+            [
+                'name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID', 'team_name', 'next_match_value'
+            ]
+        ]
+
+        # Keep most recent for latest price - there may be duplicates if previous GW was double GW
+        other_player_info.drop_duplicates(subset='name', keep='last', inplace=True)
+
+        final_predictions_formatted = final_predictions_copy.merge(other_player_info, on='name', how='left')
+
+        assert final_predictions_formatted['team_name'].isnull().sum() == 0, 'Some players not in full_data'
+
+        final_predictions_formatted.sort_values('sum', ascending=False, inplace=True)
+
+        return final_predictions_formatted

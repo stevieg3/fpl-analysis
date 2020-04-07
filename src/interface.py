@@ -24,8 +24,17 @@ def fpl_scorer(previous_gw, prediction_season_order, live_run=False):
         prediction_season_order=prediction_season_order
     )
 
-    gw_prediction_data = lstm_pred.prepare_data_for_lstm(full_data=full_data)
-    final_predictions = lstm_pred.make_player_predictions(gw_prediction_data=gw_prediction_data)
+    player_list, player_data_list = lstm_pred.prepare_data_for_lstm(full_data=full_data)
+
+    unformatted_predictions = lstm_pred.make_player_predictions(
+        player_data_list=player_data_list
+    )
+
+    final_predictions = lstm_pred.format_predictions(
+        player_list=player_list,
+        final_predictions=unformatted_predictions,
+        full_data=full_data
+    )
 
     reversed_season_order_dict = {v: k for k, v in SEASON_ORDER_DICT.items()}
     final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
