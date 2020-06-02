@@ -114,7 +114,7 @@ previous_team_selection_names = previous_team_selection.copy()[['name', 'in_curr
 
 current_predictions_for_prev_team = current_predictions.merge(previous_team_selection_names, on='name', how='inner')
 
-if current_predictions_for_prev_team['predictions'].isnull().sum() != 0:
+if current_predictions_for_prev_team['predictions'].isnull().sum() != 0:  # TODO Does this actually work?
     logging.info('Some players missing')
     # Players not playing in next GW still appear but have null values for points predictions and next match value
     current_predictions.dropna(axis=0, how='any', inplace=True)
@@ -441,4 +441,5 @@ gw_selection_df.loc[
 
 assert gw_selection_df[['purchase_price', 'gw_introduced_in']].isnull().sum().sum() == 0
 
+# TODO Replace with S3 data write
 gw_selection_df.to_parquet('data/gw_team_selections/gw29_v3_lstm_team_selections.parquet', index=False)
