@@ -219,7 +219,7 @@ def split_sequences(df, target_column, n_steps_in, n_steps_out):
     return np.array(X), np.array(y)
 
 
-def custom_train_test_split(full_data, rand_sample_prop=0.005):
+def custom_train_test_split(full_data, random_state, rand_sample_prop=0.005):
     """
     Split player-gameweek data into training and test set. Data is in panel data format so test sets are the end GWs for
     randomly selected players (i.e. preserving the order). The test set for each randomly selected player can vary in
@@ -232,6 +232,7 @@ def custom_train_test_split(full_data, rand_sample_prop=0.005):
     """
     full_data = full_data.copy()
     # Randomly assign 1s to rows (player-GW data points) from DataFrame
+    np.random.seed(random_state)
     full_data['in_test_set'] = np.random.choice(
         [np.nan, 1],
         size=(full_data.shape[0],),
