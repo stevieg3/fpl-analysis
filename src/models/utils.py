@@ -73,6 +73,7 @@ def _load_current_season_data(previous_gw, save_file=False):
     current_gw_data = get_fpl_data.get_all_gameweek_data_from_api()
 
     if save_file:
+        # TODO Save to S3
         logging.info(f"Writing current data as of gw {previous_gw} to gw_{previous_gw}_player_data.parquet")
         current_gw_data.to_parquet(f'data/gw_player_data/gw_{previous_gw}_player_data.parquet', index=False)
 
