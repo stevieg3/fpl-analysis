@@ -94,6 +94,9 @@ def _load_next_fixture_data(next_gw):
     get_fpl_data = GetFPLData(season='2019-20')
     upcoming_fixtures = get_fpl_data.get_all_fixture_data_from_api()
 
+    # Project restart
+    upcoming_fixtures['gw'] = upcoming_fixtures['gw'] - 9
+
     next_fixture_data = upcoming_fixtures[upcoming_fixtures['gw'] == next_gw]
 
     # Only keep columns which are available in current
