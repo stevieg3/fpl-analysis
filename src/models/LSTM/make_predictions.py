@@ -250,13 +250,14 @@ class LSTMPlayerPredictor:
 
         return final_predictions
 
-    def format_predictions(self, player_list, final_predictions, full_data):
+    def format_predictions(self, player_list, final_predictions, full_data, double_gw_teams=[]):
         """
         Format predictions returned by `make_player_predictions()` by sorting and appending additional columns.
 
         :param final_predictions: DataFrame of final predictions as returned by `make_player_predictions()`
         :param full_data: DataFrame of player season-gameweek data as returned by `load_live_data` or `load_retro_data`
         :param player_list: List of players in same order as `final_predictions`
+        :param double_gw_teams: List of double gameweek teams in upcoming gameweek
         :return: Formatted DataFrame of player predictions
         """
 
@@ -278,6 +279,24 @@ class LSTMPlayerPredictor:
         final_predictions_formatted = final_predictions_copy.merge(other_player_info, on='name', how='left')
 
         assert final_predictions_formatted['team_name'].isnull().sum() == 0, 'Some players not in full_data'
+
+        for double_gw_team in double_gw_teams:
+            logging.info(f'Doubling GW_plus_1 predictions for {double_gw_team}')
+            final_predictions_formatted.loc[
+                final_predictions_formatted['team_name'] == double_gw_team,
+                'GW_plus_1'
+            ] = \
+                final_predictions_formatted.loc[
+                    final_predictions_formatted['team_name'] == double_gw_team,
+                    'GW_plus_1'
+                ] * 2
+
+        final_predictions_formatted['sum'] = \
+            final_predictions_formatted['GW_plus_1'] + \
+            final_predictions_formatted['GW_plus_2'] + \
+            final_predictions_formatted['GW_plus_3'] + \
+            final_predictions_formatted['GW_plus_4'] + \
+            final_predictions_formatted['GW_plus_5']
 
         final_predictions_formatted.sort_values('sum', ascending=False, inplace=True)
 

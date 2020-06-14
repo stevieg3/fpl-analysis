@@ -11,7 +11,7 @@ from src.data.s3_utilities import \
     write_dataframe_to_s3
 
 
-def fpl_scorer(previous_gw, prediction_season_order, live_run=False):
+def fpl_scorer(previous_gw, prediction_season_order, live_run=False, double_gw_teams=[]):
     # TODO Docstring
     if live_run:
         full_data = load_live_data(previous_gw=previous_gw, save_file=True)
@@ -33,7 +33,8 @@ def fpl_scorer(previous_gw, prediction_season_order, live_run=False):
     final_predictions = lstm_pred.format_predictions(
         player_list=player_list,
         final_predictions=unformatted_predictions,
-        full_data=full_data
+        full_data=full_data,
+        double_gw_teams=double_gw_teams
     )
 
     reversed_season_order_dict = {v: k for k, v in SEASON_ORDER_DICT.items()}
