@@ -26,6 +26,10 @@ Useful commands.md
 *TEMP.ipynb
 *LSTM Shap.ipynb
 
+# Things to keep
+!BOOTSTRAP_STATIC_URL_season_4_previous_gw_37.json
+!ELEMENT_SUMMARY*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
