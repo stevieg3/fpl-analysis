@@ -21,7 +21,7 @@ __Run locally using gunicorn__:
 ```bash
 export $(xargs <.env)
 
-gunicorn app.fpl_app:app --bind 0.0.0.0:5000
+gunicorn app.fpl_app:app --bind 0.0.0.0:5000 --timeout 2000
 
 curl -X GET "http://0.0.0.0:5000/api" -H "Content-Type: application/json" --data '{"previous_gw":"29","prediction_season_order":"4","live_run":"True"}'
 ```
