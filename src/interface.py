@@ -1,3 +1,5 @@
+import logging
+
 from src.models.LSTM.make_predictions import \
     load_live_data, \
     load_retro_data, \
@@ -10,6 +12,8 @@ from src.data.s3_utilities import \
     GW_RETRO_PREDICTIONS_SUFFIX, \
     write_dataframe_to_s3
 
+logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
+
 
 def fpl_scorer(previous_gw, prediction_season_order, live_run=False, double_gw_teams=[]):
     # TODO Docstring
@@ -21,7 +25,8 @@ def fpl_scorer(previous_gw, prediction_season_order, live_run=False, double_gw_t
 
     lstm_pred = LSTMPlayerPredictor(
         previous_gw=previous_gw,
-        prediction_season_order=prediction_season_order
+        prediction_season_order=prediction_season_order,
+        previous_gw_was_double_gw=False  # TODO Make into a passable parameter
     )
 
     player_list, player_data_list = lstm_pred.prepare_data_for_lstm(full_data=full_data)
@@ -41,6 +46,8 @@ def fpl_scorer(previous_gw, prediction_season_order, live_run=False, double_gw_t
     final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
     final_predictions['gw'] = previous_gw + 1  # TODO Need to account for GW 38
     final_predictions['model'] = 'lstm_v4'
+
+    logging.info(final_predictions.head())
 
     if live_run:
         write_dataframe_to_s3(

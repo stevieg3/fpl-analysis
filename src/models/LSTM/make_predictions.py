@@ -44,6 +44,14 @@ def load_live_data(previous_gw, save_file=False):
     current_gw_df = _load_current_season_data(previous_gw=previous_gw, save_file=save_file)
     logging.info(f"Loaded current season data (up to gw {previous_gw}) of shape: {current_gw_df.shape}")
 
+    # TODO Remove after project restart
+    current_gw_df['gw'] = np.where(current_gw_df['gw'] >= 39, current_gw_df['gw'] - 9, current_gw_df['gw'])
+    for restart_month in ['Jun', 'Jul']:
+        try:
+            current_gw_df.drop(f'kickoff_month_{restart_month}', axis=1, inplace=True)
+        except KeyError:
+            pass
+
     assert len(set(current_gw_df.columns) - set(raw_historical_df.columns)) == 0
 
     # Load next
@@ -92,6 +100,18 @@ def load_retro_data(current_season_data_filepath):
 
     # Load latest current season data
     current_season_data = pd.read_parquet(current_season_data_filepath)
+
+    # TODO Remove after project restart?
+    current_season_data['gw'] = np.where(
+        current_season_data['gw'] >= 39,
+        current_season_data['gw'] - 9,
+        current_season_data['gw']
+    )
+    for restart_month in ['Jun', 'Jul']:
+        try:
+            current_season_data.drop(f'kickoff_month_{restart_month}', axis=1, inplace=True)
+        except KeyError:
+            pass
 
     for col in list(set(KICKOFF_MONTH_FEATURES) - set(current_season_data.columns)):
         current_season_data[col] = 0
