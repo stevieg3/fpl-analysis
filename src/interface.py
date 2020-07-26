@@ -21,7 +21,7 @@ def fpl_scorer(previous_gw, prediction_season_order, live_run=False, double_gw_t
         full_data = load_live_data(previous_gw=previous_gw, save_file=True)
     else:
         # TODO Smarter way of finding latest file:
-        full_data = load_retro_data(current_season_data_filepath='data/gw_player_data/gw_29_player_data.parquet')
+        full_data = load_retro_data(current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet')
 
     lstm_pred = LSTMPlayerPredictor(
         previous_gw=previous_gw,
@@ -43,8 +43,13 @@ def fpl_scorer(previous_gw, prediction_season_order, live_run=False, double_gw_t
     )
 
     reversed_season_order_dict = {v: k for k, v in SEASON_ORDER_DICT.items()}
-    final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
-    final_predictions['gw'] = previous_gw + 1  # TODO Need to account for GW 38
+    if previous_gw == 38:
+        prediction_season_order += 1  # Roll over to next season
+        final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
+        final_predictions['gw'] = 1
+    else:
+        final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
+        final_predictions['gw'] = previous_gw + 1
     final_predictions['model'] = 'lstm_v4'
 
     logging.info(final_predictions.head())
