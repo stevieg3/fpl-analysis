@@ -23,12 +23,12 @@ export $(xargs <.env)
 
 gunicorn app.fpl_app:app --bind 0.0.0.0:5000 --timeout 2000
 
-curl -X GET "http://0.0.0.0:5000/api" -H "Content-Type: application/json" --data '{"previous_gw":"29","prediction_season_order":"4","live_run":"True"}'
+curl -X GET "http://0.0.0.0:5000/api" -H "Content-Type: application/json" --data '{"previous_gw": 38, "prediction_season_order": 3, "live_run": false, "double_gw_teams": ["Arsenal"]}'
 ```
 
 __Run locally using Docker__:
 ```bash
 docker-compose up
 
-curl -X GET "http://0.0.0.0:5000/api" -H "Content-Type: application/json" --data '{"previous_gw":"29","prediction_season_order":"4","live_run":"True"}'
+curl -X GET "http://0.0.0.0:5000/api" -H "Content-Type: application/json" --data '{"previous_gw": 38, "prediction_season_order": 3, "live_run": false, "double_gw_teams": ["Arsenal"]}'
 ```
