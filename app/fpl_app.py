@@ -21,7 +21,6 @@ NON_OPTIONAL_PAYLOAD_PARAMS = ['previous_gw', 'prediction_season_order', 'live_r
 @app.route('/api', methods=['GET'])
 def api():
     content = request.get_json()
-    print(content)
 
     # Non-optional parameters:
     for param in NON_OPTIONAL_PAYLOAD_PARAMS:
