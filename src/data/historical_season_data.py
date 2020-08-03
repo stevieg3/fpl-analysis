@@ -112,6 +112,23 @@ def _combine_player_and_gameweek_data(season, starting_gameweek=STARTING_GAMEWEE
 
     full_season_data = gameweek_data.merge(player_data, on=['name', 'season'], how='inner')
 
+    # Change team_name for mid-season transfers. This resolves a known issue where team_names are overwritten with the
+    # new team joined in the middle of the season
+    mid_season_transfers = pd.read_csv('data/external/mid_season_transfers_2016_to_2019.csv')
+    mid_season_transfers = mid_season_transfers[mid_season_transfers['season'] == season]
+
+    for _, row in mid_season_transfers.iterrows():
+        name = row['name']
+        transfer_date = row['transfer_date']
+        old_team = row['old_team']
+
+        full_season_data['team_name'] = np.where(
+            (full_season_data['name'] == name) &
+            (full_season_data['kickoff_time'] < transfer_date),
+            old_team,
+            full_season_data['team_name']
+        )
+
     return full_season_data
 
 
