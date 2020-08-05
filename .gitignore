@@ -11,6 +11,8 @@
 *.env
 Deploy to AWS instructions.md
 Useful commands.md
+*fantasy_football_scout_data_1718_to_1819.parquet
+*oddsportal_odds_2016to2019.parquet
 
 *.ipynb_checkpoints
 *.idea
