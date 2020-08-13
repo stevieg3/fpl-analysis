@@ -1,23 +1,28 @@
 import pandas as pd
-import numpy as np
 
-ODDS_DATA_TEAM_NAME_TO_FPL_TEAM_NAME = {
-        'Hull': 'Hull City',
-        'Leicester': 'Leicester City',
-        'Manchester Utd': 'Manchester United',
-        'Stoke': 'Stoke City',
-        'Swansea': 'Swansea City',
-        'Tottenham': 'Tottenham Hotspur',
-        'West Brom': 'West Bromwich Albion',
-        'West Ham': 'West Ham United',
-        'Brighton': 'Brighton & Hove Albion',
-        'Cardiff': 'Cardiff City',
-        'Huddersfield': 'Huddersfield Town',
-        'Newcastle': 'Newcastle United',
-        'Wolves': 'Wolverhampton Wanderers'
-    }
+ODDS_DATA_TEAM_NAME_TO_FFS_TEAM_NAME = {
+    'Blackburn': 'Blackburn Rovers',
+    'Bolton': 'Bolton Wanderers',
+    'Brighton': 'Brighton and Hove Albion',
+    'Cardiff': 'Cardiff City',
+    'Huddersfield': 'Huddersfield Town',
+    'Hull': 'Hull City',
+    'Leicester': 'Leicester City',
+    'Manchester Utd': 'Manchester United',
+    'Newcastle': 'Newcastle United',
+    'Norwich': 'Norwich City',
+    'QPR': 'Queens Park Rangers',
+    'Sheffield Utd': 'Sheffield United',
+    'Stoke': 'Stoke City',
+    'Swansea': 'Swansea City',
+    'Tottenham': 'Tottenham Hotspur',
+    'West Brom': 'West Bromwich Albion',
+    'West Ham': 'West Ham United',
+    'Wigan': 'Wigan Athletic',
+    'Wolves': 'Wolverhampton Wanderers'
+}
 """
-Mapping of team names in Odds Portal to teams names in FPL data
+Mapping of team names in Odds Portal to teams names in FFS data
 """
 
 
@@ -29,48 +34,20 @@ def create_historical_fixture_and_odds_data(save=False):
     :return: DataFrame of fixture and odds data if `save` is False
     """
     # Fixtures data
-    historical_fpl_data = pd.read_parquet('data/processed/fpl_data_2016_to_2019.parquet')
-
-    fixtures = historical_fpl_data.copy()[['season', 'gw', 'team_name', 'team_name_opponent', 'was_home']]
-
-    fixtures['home_team'] = np.where(
-        fixtures['was_home'],
-        fixtures['team_name'],
-        fixtures['team_name_opponent']
+    all_fixtures = pd.read_parquet('data/external/all_premier_league_fixtures_by_gameweek_2011to2020.parquet')
+    all_fixtures['season'] = all_fixtures['season'].str.replace('/', '-')
+    all_fixtures.rename(
+        columns={
+            'Home': 'home_team',
+            'Away': 'away_team'
+        },
+        inplace=True
     )
-
-    fixtures['away_team'] = np.where(
-        fixtures['was_home'],
-        fixtures['team_name_opponent'],
-        fixtures['team_name']
-    )
-
-    fixtures.drop_duplicates(['season', 'home_team', 'away_team'], inplace=True)
-    fixtures.drop(columns=['team_name', 'team_name_opponent', 'was_home'], inplace=True)
-
-    assert fixtures.shape[0] == 38 * 10 * 3  # 3 seasons worth of fixtures
 
     # Historical odds from Odds Portal
-    odds_data = pd.read_parquet('data/external/oddsportal_odds_2016to2019.parquet')
-
-    odds_data['season'] = odds_data['season'].map(
-        {
-            '2016-2017': '2016-17',
-            '2017-2018': '2017-18',
-            '2018-2019': '2018-19'
-        }
-    )
-
-    odds_data['home_team'] = odds_data['home_team'].replace(ODDS_DATA_TEAM_NAME_TO_FPL_TEAM_NAME)
-    odds_data['away_team'] = odds_data['away_team'].replace(ODDS_DATA_TEAM_NAME_TO_FPL_TEAM_NAME)
-
-    assert len(
-        set(fixtures['home_team']) - set(odds_data['home_team'])
-    ) == 0  # Check that all team names have been mapped
-
-    odds_data.drop(['KO', 'Match', 'num_available_bookmakers', 'Result'], axis=1, inplace=True)
-
-    odds_data.rename(
+    all_odds = pd.read_parquet('data/external/oddsportal_odds_2011to2020.parquet')
+    all_odds.drop(columns=['KO', 'num_available_bookmakers'], inplace=True)
+    all_odds.rename(
         columns={
             '1': 'home_win',
             'X': 'draw',
@@ -78,14 +55,17 @@ def create_historical_fixture_and_odds_data(save=False):
         },
         inplace=True
     )
+    # Rename teams to align
+    all_odds['home_team'].replace(ODDS_DATA_TEAM_NAME_TO_FFS_TEAM_NAME, inplace=True)
+    all_odds['away_team'].replace(ODDS_DATA_TEAM_NAME_TO_FFS_TEAM_NAME, inplace=True)
 
-    fixture_and_odds = fixtures.merge(
-        odds_data,
-        on=['home_team', 'away_team', 'season'],
-        how='inner'
-    )
+    # Combine
+    fixture_and_odds = all_fixtures.merge(all_odds, on=['home_team', 'away_team', 'season'], how='inner')
+    fixture_and_odds.drop(columns=['Score', 'Match', 'Result'], inplace=True)
+
+    assert fixture_and_odds.shape[0] == 38 * 10 * 9  # 9 seasons worth of fixtures
 
     if save:
-        fixture_and_odds.to_parquet('data/processed/fixture_and_odds_2016_to_2019.parquet', index=False)
+        fixture_and_odds.to_parquet('data/processed/fixture_and_odds_2011_to_2020.parquet', index=False)
     else:
         return fixture_and_odds
