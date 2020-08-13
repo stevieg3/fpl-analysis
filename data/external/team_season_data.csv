@@ -1,81 +1,181 @@
-team,team_name,promoted_side,top_6_last_season,season
-1,Arsenal,0,1,2016-17
-2,Bournemouth,0,0,2016-17
-3,Burnley,1,0,2016-17
-4,Chelsea,0,0,2016-17
-5,Crystal Palace,0,0,2016-17
-6,Everton,0,0,2016-17
-7,Hull City,1,0,2016-17
-8,Leicester City,0,1,2016-17
-9,Liverpool,0,0,2016-17
-10,Manchester City,0,1,2016-17
-11,Manchester United,0,1,2016-17
-12,Middlesbrough,1,0,2016-17
-13,Southampton,0,1,2016-17
-14,Stoke City,0,0,2016-17
-15,Sunderland,0,0,2016-17
-16,Swansea City,0,0,2016-17
-17,Tottenham Hotspur,0,1,2016-17
-18,Watford,0,0,2016-17
-19,West Bromwich Albion,0,0,2016-17
-20,West Ham United,0,0,2016-17
-1,Arsenal,0,1,2017-18
-2,Bournemouth,0,0,2017-18
-3,Brighton & Hove Albion,1,0,2017-18
-4,Burnley,0,0,2017-18
-5,Chelsea,0,1,2017-18
-6,Crystal Palace,0,0,2017-18
-7,Everton,0,0,2017-18
-8,Huddersfield Town,1,0,2017-18
-9,Leicester City,0,0,2017-18
-10,Liverpool,0,1,2017-18
-11,Manchester City,0,1,2017-18
-12,Manchester United,0,1,2017-18
-13,Newcastle United,1,0,2017-18
-14,Southampton,0,0,2017-18
-15,Stoke City,0,0,2017-18
-16,Swansea City,0,0,2017-18
-17,Tottenham Hotspur,0,1,2017-18
-18,Watford,0,0,2017-18
-19,West Bromwich Albion,0,0,2017-18
-20,West Ham United,0,0,2017-18
-1,Arsenal,0,1,2018-19
-2,Bournemouth,0,0,2018-19
-3,Brighton & Hove Albion,0,0,2018-19
-4,Burnley,0,0,2018-19
-5,Cardiff City,1,0,2018-19
-6,Chelsea,0,1,2018-19
-7,Crystal Palace,0,0,2018-19
-8,Everton,0,0,2018-19
-9,Fulham,1,0,2018-19
-10,Huddersfield Town,0,0,2018-19
-11,Leicester City,0,0,2018-19
-12,Liverpool,0,1,2018-19
-13,Manchester City,0,1,2018-19
-14,Manchester United,0,1,2018-19
-15,Newcastle United,0,0,2018-19
-16,Southampton,0,0,2018-19
-17,Tottenham Hotspur,0,1,2018-19
-18,Watford,0,0,2018-19
-19,West Ham United,0,0,2018-19
-20,Wolverhampton Wanderers,1,0,2018-19
-1,Arsenal,0,1,2019-20
-2,Aston Villa,1,0,2019-20
-3,Bournemouth,0,0,2019-20
-4,Brighton & Hove Albion,0,0,2019-20
-5,Burnley,0,0,2019-20
-6,Chelsea,0,1,2019-20
-7,Crystal Palace,0,0,2019-20
-8,Everton,0,0,2019-20
-9,Leicester City,0,0,2019-20
-10,Liverpool,0,1,2019-20
-11,Manchester City,0,1,2019-20
-12,Manchester United,0,1,2019-20
-13,Newcastle United,0,0,2019-20
-14,Norwich City,1,0,2019-20
-15,Sheffield United,1,0,2019-20
-16,Southampton,0,0,2019-20
-17,Tottenham Hotspur,0,1,2019-20
-18,Watford,0,0,2019-20
-19,West Ham United,0,0,2019-20
-20,Wolverhampton Wanderers,0,0,2019-20
+team,team_name,promoted_side,top_6_last_season,season,team_name_ffs
+1,Arsenal,0,1,2016-17,Arsenal
+2,Bournemouth,0,0,2016-17,Bournemouth
+3,Burnley,1,0,2016-17,Burnley
+4,Chelsea,0,0,2016-17,Chelsea
+5,Crystal Palace,0,0,2016-17,Crystal Palace
+6,Everton,0,0,2016-17,Everton
+7,Hull City,1,0,2016-17,Hull City
+8,Leicester City,0,1,2016-17,Leicester City
+9,Liverpool,0,0,2016-17,Liverpool
+10,Manchester City,0,1,2016-17,Manchester City
+11,Manchester United,0,1,2016-17,Manchester United
+12,Middlesbrough,1,0,2016-17,Middlesbrough
+13,Southampton,0,1,2016-17,Southampton
+14,Stoke City,0,0,2016-17,Stoke City
+15,Sunderland,0,0,2016-17,Sunderland
+16,Swansea City,0,0,2016-17,Swansea City
+17,Tottenham Hotspur,0,1,2016-17,Tottenham Hotspur
+18,Watford,0,0,2016-17,Watford
+19,West Bromwich Albion,0,0,2016-17,West Bromwich Albion
+20,West Ham United,0,0,2016-17,West Ham United
+1,Arsenal,0,1,2017-18,Arsenal
+2,Bournemouth,0,0,2017-18,Bournemouth
+3,Brighton & Hove Albion,1,0,2017-18,Brighton and Hove Albion
+4,Burnley,0,0,2017-18,Burnley
+5,Chelsea,0,1,2017-18,Chelsea
+6,Crystal Palace,0,0,2017-18,Crystal Palace
+7,Everton,0,0,2017-18,Everton
+8,Huddersfield Town,1,0,2017-18,Huddersfield Town
+9,Leicester City,0,0,2017-18,Leicester City
+10,Liverpool,0,1,2017-18,Liverpool
+11,Manchester City,0,1,2017-18,Manchester City
+12,Manchester United,0,1,2017-18,Manchester United
+13,Newcastle United,1,0,2017-18,Newcastle United
+14,Southampton,0,0,2017-18,Southampton
+15,Stoke City,0,0,2017-18,Stoke City
+16,Swansea City,0,0,2017-18,Swansea City
+17,Tottenham Hotspur,0,1,2017-18,Tottenham Hotspur
+18,Watford,0,0,2017-18,Watford
+19,West Bromwich Albion,0,0,2017-18,West Bromwich Albion
+20,West Ham United,0,0,2017-18,West Ham United
+1,Arsenal,0,1,2018-19,Arsenal
+2,Bournemouth,0,0,2018-19,Bournemouth
+3,Brighton & Hove Albion,0,0,2018-19,Brighton and Hove Albion
+4,Burnley,0,0,2018-19,Burnley
+5,Cardiff City,1,0,2018-19,Cardiff City
+6,Chelsea,0,1,2018-19,Chelsea
+7,Crystal Palace,0,0,2018-19,Crystal Palace
+8,Everton,0,0,2018-19,Everton
+9,Fulham,1,0,2018-19,Fulham
+10,Huddersfield Town,0,0,2018-19,Huddersfield Town
+11,Leicester City,0,0,2018-19,Leicester City
+12,Liverpool,0,1,2018-19,Liverpool
+13,Manchester City,0,1,2018-19,Manchester City
+14,Manchester United,0,1,2018-19,Manchester United
+15,Newcastle United,0,0,2018-19,Newcastle United
+16,Southampton,0,0,2018-19,Southampton
+17,Tottenham Hotspur,0,1,2018-19,Tottenham Hotspur
+18,Watford,0,0,2018-19,Watford
+19,West Ham United,0,0,2018-19,West Ham United
+20,Wolverhampton Wanderers,1,0,2018-19,Wolverhampton Wanderers
+1,Arsenal,0,1,2019-20,Arsenal
+2,Aston Villa,1,0,2019-20,Aston Villa
+3,Bournemouth,0,0,2019-20,Bournemouth
+4,Brighton & Hove Albion,0,0,2019-20,Brighton and Hove Albion
+5,Burnley,0,0,2019-20,Burnley
+6,Chelsea,0,1,2019-20,Chelsea
+7,Crystal Palace,0,0,2019-20,Crystal Palace
+8,Everton,0,0,2019-20,Everton
+9,Leicester City,0,0,2019-20,Leicester City
+10,Liverpool,0,1,2019-20,Liverpool
+11,Manchester City,0,1,2019-20,Manchester City
+12,Manchester United,0,1,2019-20,Manchester United
+13,Newcastle United,0,0,2019-20,Newcastle United
+14,Norwich City,1,0,2019-20,Norwich City
+15,Sheffield United,1,0,2019-20,Sheffield United
+16,Southampton,0,0,2019-20,Southampton
+17,Tottenham Hotspur,0,1,2019-20,Tottenham Hotspur
+18,Watford,0,0,2019-20,Watford
+19,West Ham United,0,0,2019-20,West Ham United
+20,Wolverhampton Wanderers,0,0,2019-20,Wolverhampton Wanderers
+,,1,0,2011-12,Swansea City
+,,0,0,2011-12,Newcastle United
+,,0,1,2011-12,Chelsea
+,,0,1,2011-12,Manchester United
+,,0,0,2011-12,Wigan Athletic
+,,0,1,2011-12,Liverpool
+,,1,0,2011-12,Queens Park Rangers
+,,0,0,2011-12,Aston Villa
+,,0,0,2011-12,Blackburn Rovers
+,,0,0,2011-12,West Bromwich Albion
+,,0,1,2011-12,Tottenham Hotspur
+,,0,1,2011-12,Arsenal
+,,0,0,2011-12,Stoke City
+,,0,0,2011-12,Wolverhampton Wanderers
+,,0,1,2011-12,Manchester City
+,,1,0,2011-12,Norwich City
+,,0,0,2011-12,Fulham
+,,0,0,2011-12,Everton
+,,0,0,2011-12,Bolton Wanderers
+,,0,0,2011-12,Sunderland
+,,0,0,2012-13,Swansea City
+,,0,1,2012-13,Newcastle United
+,,0,1,2012-13,Chelsea
+,,0,1,2012-13,Manchester United
+,,1,0,2012-13,Southampton
+,,0,0,2012-13,Wigan Athletic
+,,1,0,2012-13,Reading
+,,0,0,2012-13,Liverpool
+,,0,0,2012-13,Queens Park Rangers
+,,0,0,2012-13,Aston Villa
+,,0,0,2012-13,West Bromwich Albion
+,,0,1,2012-13,Tottenham Hotspur
+,,0,1,2012-13,Arsenal
+,,0,0,2012-13,Stoke City
+,,0,1,2012-13,Manchester City
+,,1,0,2012-13,West Ham United
+,,0,0,2012-13,Norwich City
+,,0,0,2012-13,Fulham
+,,0,0,2012-13,Everton
+,,0,0,2012-13,Sunderland
+,,0,0,2013-14,Swansea City
+,,0,0,2013-14,Newcastle United
+,,1,0,2013-14,Cardiff City
+,,0,1,2013-14,Chelsea
+,,0,1,2013-14,Manchester United
+,,0,0,2013-14,Southampton
+,,0,0,2013-14,Liverpool
+,,0,0,2013-14,Aston Villa
+,,1,0,2013-14,Crystal Palace
+,,0,0,2013-14,West Bromwich Albion
+,,0,1,2013-14,Tottenham Hotspur
+,,0,1,2013-14,Arsenal
+,,0,0,2013-14,Stoke City
+,,0,1,2013-14,Manchester City
+,,0,0,2013-14,West Ham United
+,,0,0,2013-14,Norwich City
+,,0,0,2013-14,Fulham
+,,0,1,2013-14,Everton
+,,0,0,2013-14,Sunderland
+,,1,0,2013-14,Hull City
+,,1,0,2014-15,Leicester City
+,,0,0,2014-15,Swansea City
+,,0,0,2014-15,Newcastle United
+,,0,1,2014-15,Chelsea
+,,0,0,2014-15,Manchester United
+,,0,0,2014-15,Southampton
+,,0,1,2014-15,Liverpool
+,,1,0,2014-15,Queens Park Rangers
+,,0,0,2014-15,Aston Villa
+,,0,0,2014-15,Crystal Palace
+,,0,0,2014-15,West Bromwich Albion
+,,0,1,2014-15,Tottenham Hotspur
+,,0,1,2014-15,Arsenal
+,,0,0,2014-15,Stoke City
+,,1,0,2014-15,Burnley
+,,0,1,2014-15,Manchester City
+,,0,0,2014-15,West Ham United
+,,0,1,2014-15,Everton
+,,0,0,2014-15,Sunderland
+,,0,0,2014-15,Hull City
+,,0,0,2015-16,Leicester City
+,,0,0,2015-16,Swansea City
+,,0,0,2015-16,Newcastle United
+,,1,0,2015-16,Bournemouth
+,,0,1,2015-16,Chelsea
+,,0,1,2015-16,Manchester United
+,,0,0,2015-16,Southampton
+,,0,1,2015-16,Liverpool
+,,0,0,2015-16,Aston Villa
+,,0,0,2015-16,Crystal Palace
+,,0,0,2015-16,West Bromwich Albion
+,,0,1,2015-16,Tottenham Hotspur
+,,0,1,2015-16,Arsenal
+,,0,0,2015-16,Stoke City
+,,0,1,2015-16,Manchester City
+,,0,0,2015-16,West Ham United
+,,1,0,2015-16,Norwich City
+,,0,0,2015-16,Everton
+,,1,0,2015-16,Watford
+,,0,0,2015-16,Sunderland
