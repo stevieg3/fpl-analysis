@@ -1,5 +1,7 @@
 import logging
 
+import pandas as pd
+
 from src.models.LSTM.make_predictions import \
     load_live_data, \
     load_retro_data, \
@@ -63,6 +65,13 @@ def fpl_scorer(
 
     reversed_season_order_dict = {v: k for k, v in SEASON_ORDER_DICT.items()}
     if previous_gw == 38:
+        # Account for position changes between seasons
+        # Note: Predictions are made using past position but new position needed for team selection
+        make_retro_position_changes(
+            df_with_old_positions=final_predictions,
+            season_1=reversed_season_order_dict[prediction_season_order],
+            season_2=reversed_season_order_dict[prediction_season_order+1]
+        )
         prediction_season_order += 1  # Roll over to next season
         final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
         final_predictions['gw'] = 1
@@ -87,3 +96,58 @@ def fpl_scorer(
             partition_cols=['season', 'gw']
         )
         logging.info('Saved retro prediction data to S3')
+
+
+def make_retro_position_changes(df_with_old_positions, season_1, season_2):
+    """
+    Some players change position at the start of a new season. This can lead to issues with team selection because
+    predictions for GW 1 will use the previous season's position. Therefore the team selection criteria may be
+    breached when making the team selection for GW 2.
+
+    This function identifies players who changed position between seasons and changes the position for these players in
+    a provided DataFrame.
+
+    :param df_with_old_positions: DataFrame which uses positions from season_1 e.g. predictions for GW 1
+    :param season_1: First season
+    :param season_2: Consecutive season
+    :return: Modifies in-place
+    """
+    # TODO Smarter way of finding latest file:
+    retro_data = load_retro_data(current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet')
+
+    names_and_pos_season_1 = retro_data[retro_data['season'] == season_1][
+        ['name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID']].drop_duplicates()
+
+    names_and_pos_season_1.loc[names_and_pos_season_1['position_DEF'] == 1, 'position'] = 'DEF'
+    names_and_pos_season_1.loc[names_and_pos_season_1['position_FWD'] == 1, 'position'] = 'FWD'
+    names_and_pos_season_1.loc[names_and_pos_season_1['position_GK'] == 1, 'position'] = 'GK'
+    names_and_pos_season_1.loc[names_and_pos_season_1['position_MID'] == 1, 'position'] = 'MID'
+
+    names_and_pos_season_2 = retro_data[retro_data['season'] == season_2][
+        ['name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID']].drop_duplicates()
+
+    names_and_pos_season_2.loc[names_and_pos_season_2['position_DEF'] == 1, 'position'] = 'DEF'
+    names_and_pos_season_2.loc[names_and_pos_season_2['position_FWD'] == 1, 'position'] = 'FWD'
+    names_and_pos_season_2.loc[names_and_pos_season_2['position_GK'] == 1, 'position'] = 'GK'
+    names_and_pos_season_2.loc[names_and_pos_season_2['position_MID'] == 1, 'position'] = 'MID'
+
+    comp = names_and_pos_season_1[['name', 'position']].merge(
+        names_and_pos_season_2[['name', 'position']],
+        on='name',
+        how='inner',
+        suffixes=('_season_1', '_season_2')
+    )
+
+    position_changes = comp[comp['position_season_1'] != comp['position_season_2']]
+
+    position_changes.rename(columns={'position_season_2': 'position'}, inplace=True)
+    position_changes.drop(columns=['position_season_1'], inplace=True)
+    position_changes = pd.get_dummies(position_changes, columns=['position'])
+
+    logging.info(f"Players who changed position between {season_1} and {season_2}: {set(position_changes['name'])}")
+
+    for _, row in position_changes.iterrows():
+        df_with_old_positions.loc[
+            (df_with_old_positions['name'] == row['name']),
+            ['position_DEF', 'position_FWD', 'position_MID']
+        ] = row['position_DEF'], row['position_FWD'], row['position_MID']
