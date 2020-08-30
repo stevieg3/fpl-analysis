@@ -15,6 +15,7 @@ Useful commands.md
 *oddsportal_odds_2016to2019.parquet
 *all_premier_league_fixtures_by_gameweek_2011to2020.parquet
 *oddsportal_odds_2011to2020.parquet
+*gw_38_player_data_endofseason.parquet
 
 *.ipynb_checkpoints
 *.idea

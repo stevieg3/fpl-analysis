@@ -219,6 +219,46 @@ def combine_all_season_data(write_to_parquet=True, return_dataframe=False):
         inplace=True
     )
 
+    # Data for 19-20 season was saved during live prediction so many of the preprocessing steps have been completed
+    logging.info("Processing 2019/20 season data...")
+    gw_data_full_1920_processed = pd.read_parquet('data/external/gw_38_player_data_endofseason.parquet')
+
+    # Project restart adjustments
+    gw_data_full_1920_processed['gw'] = np.where(
+        gw_data_full_1920_processed['gw'] >= 39,
+        gw_data_full_1920_processed['gw'] - 9,
+        gw_data_full_1920_processed['gw']
+    )
+    # Games played in June and July. To conform with expected model inputs we pretend these were played in April and May
+    # This feels better than setting dummies to 0 for April and May. Ideally a model retrain would drop these features
+    gw_data_full_1920_processed.rename(
+        columns={
+            'kickoff_month_Jun': 'kickoff_month_Apr',
+            'kickoff_month_Jul': 'kickoff_month_May'
+        },
+        inplace=True
+    )
+    # Drop ID as we will create a new one
+    gw_data_full_1920_processed.drop(columns=['ID'], inplace=True)
+
+    # Remove cases where team_name == team_name_opponent (unaccounted for in mid-season transfers)
+    num_cases = gw_data_full_1920_processed[
+        gw_data_full_1920_processed['team_name'] == gw_data_full_1920_processed['team_name_opponent']
+    ].shape[0]
+    logging.info(f"Number of 19/20 cases where team_name == team_name_opponent : {num_cases}")
+
+    gw_data_full_1920_processed = gw_data_full_1920_processed[
+        gw_data_full_1920_processed['team_name'] != gw_data_full_1920_processed['team_name_opponent']
+    ]
+
+    # Change dtypes of some columns to match historical
+    for col in ['influence', 'ict_index', 'threat', 'creativity']:
+        gw_data_full_1920_processed[col] = gw_data_full_1920_processed[col].astype(float)
+
+    logging.info("Finished processing 2019/20 season data!")
+
+    fpl_data_all_seasons = fpl_data_all_seasons.append(gw_data_full_1920_processed)
+
     # Create unique ID for each player
     id_df = fpl_data_all_seasons.groupby(['name']).count().reset_index()[['name']]
     id_df['ID'] = id_df.index + 1
@@ -234,7 +274,7 @@ def combine_all_season_data(write_to_parquet=True, return_dataframe=False):
     logging.info(f"Shape of final DataFrame: {fpl_data_all_seasons.shape}")
 
     if write_to_parquet:
-        fpl_data_all_seasons.to_parquet('data/processed/fpl_data_2016_to_2019.parquet', index=False)
+        fpl_data_all_seasons.to_parquet('data/processed/fpl_data_2016_to_2020.parquet', index=False)
 
     if return_dataframe:
         return fpl_data_all_seasons
