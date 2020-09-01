@@ -66,6 +66,7 @@ class GetFPLData:
 
         # Get team information for each player
         team_data = pd.read_csv(TEAM_SEASON_DATA)
+        team_data.drop(columns=['team_name_ffs'], inplace=True)
         players_raw = players_raw.merge(team_data, on=['team', 'season'], how='left')
 
         return players_raw
@@ -186,6 +187,18 @@ class GetFPLData:
             },
             inplace=True
         )
+
+        # Deduct 1 from gw for players missing next fixture so that next fixture used for predictions is the one they
+        # will play in next
+        players_missing_next_fixture = set(fixture_dataframe[fixture_dataframe['gw'].isnull()]['name'])
+        logging.info(f'Players missing next fixture: {players_missing_next_fixture}')
+        fixture_dataframe['gw'] = np.where(
+            fixture_dataframe['name'].isin(players_missing_next_fixture),
+            fixture_dataframe['gw'] - 1,
+            fixture_dataframe['gw']
+        )
+        fixture_dataframe = fixture_dataframe[~fixture_dataframe['gw'].isnull()]
+        fixture_dataframe['gw'] = fixture_dataframe['gw'].astype(int)
 
         fixture_dataframe = fixture_dataframe.merge(
             player_data[

@@ -23,7 +23,7 @@ def _load_all_historical_data(available_features=FPL_AVAILABLE_FEATURES_19_20):
     :return: Pandas DataFrame
     """
     logging.info("Loading raw historical FPL data")
-    with open(r'data/processed/fpl_data_2016_to_2019.parquet', 'rb') as f:
+    with open(r'data/processed/fpl_data_2016_to_2020.parquet', 'rb') as f:
         fpl_all_historical = pd.read_parquet(f, engine='pyarrow')
 
     return fpl_all_historical[available_features]
@@ -91,11 +91,8 @@ def _load_next_fixture_data(next_gw):
     :param next_gw: Next Gameweek (must be a Gameweek which hasn't occurred yet otherwise will not be present in API)
     :return: Pandas DataFame
     """
-    get_fpl_data = GetFPLData(season='2019-20')
+    get_fpl_data = GetFPLData(season='2020-21')
     upcoming_fixtures = get_fpl_data.get_all_fixture_data_from_api()
-
-    # Project restart  # TODO Remove next season
-    upcoming_fixtures['gw'] = upcoming_fixtures['gw'] - 9
 
     next_fixture_data = upcoming_fixtures[upcoming_fixtures['gw'] == next_gw]
 

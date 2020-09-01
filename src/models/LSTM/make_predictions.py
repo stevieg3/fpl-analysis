@@ -40,24 +40,26 @@ def load_live_data(previous_gw, save_file=False):
     logging.info(f"Loaded historical data of shape: {raw_historical_df.shape}")
 
     # Load current
-    logging.info(f"Loading current season data (up to gw {previous_gw})...")
-    current_gw_df = _load_current_season_data(previous_gw=previous_gw, save_file=save_file)
-    logging.info(f"Loaded current season data (up to gw {previous_gw}) of shape: {current_gw_df.shape}")
-
-    # TODO Remove after project restart
-    current_gw_df['gw'] = np.where(current_gw_df['gw'] >= 39, current_gw_df['gw'] - 9, current_gw_df['gw'])
-    for restart_month in ['Jun', 'Jul']:
-        try:
-            current_gw_df.drop(f'kickoff_month_{restart_month}', axis=1, inplace=True)
-        except KeyError:
-            pass
-
-    assert len(set(current_gw_df.columns) - set(raw_historical_df.columns)) == 0
+    if previous_gw == 38:
+        logging.info('First gameweek prediction so no current data to load')
+        current_gw_df = pd.DataFrame()
+    else:
+        logging.info(f"Loading current season data (up to gw {previous_gw})...")
+        current_gw_df = _load_current_season_data(previous_gw=previous_gw, save_file=save_file)
+        logging.info(f"Loaded current season data (up to gw {previous_gw}) of shape: {current_gw_df.shape}")
+        assert len(set(current_gw_df.columns) - set(raw_historical_df.columns)) == 0
 
     # Load next
-    logging.info(f"Loading next fixture (gw {previous_gw + 1}) data...")
-    next_gw_df = _load_next_fixture_data(next_gw=previous_gw+1)
-    logging.info(f"Loaded next fixture (gw {previous_gw+1}) data of shape: {next_gw_df.shape}")
+    if previous_gw == 38:
+        previous_gw = 1
+
+        logging.info(f"Loading next fixture (gw {previous_gw}) data...")
+        next_gw_df = _load_next_fixture_data(next_gw=previous_gw)
+        logging.info(f"Loaded next fixture (gw {previous_gw}) data of shape: {next_gw_df.shape}")
+    else:
+        logging.info(f"Loading next fixture (gw {previous_gw + 1}) data...")
+        next_gw_df = _load_next_fixture_data(next_gw=previous_gw + 1)
+        logging.info(f"Loaded next fixture (gw {previous_gw + 1}) data of shape: {next_gw_df.shape}")
 
     # Combine data
     input_data = raw_historical_df.append(current_gw_df, sort=False)

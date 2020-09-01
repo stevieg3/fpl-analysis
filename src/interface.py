@@ -65,12 +65,15 @@ def fpl_scorer(
 
     reversed_season_order_dict = {v: k for k, v in SEASON_ORDER_DICT.items()}
     if previous_gw == 38:
+        logging.info("First gameweek prediction so checking for positional changes")
         # Account for position changes between seasons
         # Note: Predictions are made using past position but new position needed for team selection
-        make_retro_position_changes(
+        make_position_changes(
             df_with_old_positions=final_predictions,
             season_1=reversed_season_order_dict[prediction_season_order],
-            season_2=reversed_season_order_dict[prediction_season_order+1]
+            season_2=reversed_season_order_dict[prediction_season_order+1],
+            live_run=live_run,
+            previous_gw=previous_gw
         )
         prediction_season_order += 1  # Roll over to next season
         final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
@@ -98,7 +101,7 @@ def fpl_scorer(
         logging.info('Saved retro prediction data to S3')
 
 
-def make_retro_position_changes(df_with_old_positions, season_1, season_2):
+def make_position_changes(df_with_old_positions, season_1, season_2, live_run, previous_gw=None):
     """
     Some players change position at the start of a new season. This can lead to issues with team selection because
     predictions for GW 1 will use the previous season's position. Therefore the team selection criteria may be
@@ -110,12 +113,17 @@ def make_retro_position_changes(df_with_old_positions, season_1, season_2):
     :param df_with_old_positions: DataFrame which uses positions from season_1 e.g. predictions for GW 1
     :param season_1: First season
     :param season_2: Consecutive season
+    :param live_run: Boolean. Live or retro predictions
+    :param previous_gw: Previous GW
     :return: Modifies in-place
     """
-    # TODO Smarter way of finding latest file:
-    retro_data = load_retro_data(current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet')
+    if live_run:
+        gw_data = load_live_data(previous_gw=previous_gw, save_file=False)
+    else:
+        # TODO Smarter way of finding latest file:
+        gw_data = load_retro_data(current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet')
 
-    names_and_pos_season_1 = retro_data[retro_data['season'] == season_1][
+    names_and_pos_season_1 = gw_data[gw_data['season'] == season_1][
         ['name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID']].drop_duplicates()
 
     names_and_pos_season_1.loc[names_and_pos_season_1['position_DEF'] == 1, 'position'] = 'DEF'
@@ -123,7 +131,7 @@ def make_retro_position_changes(df_with_old_positions, season_1, season_2):
     names_and_pos_season_1.loc[names_and_pos_season_1['position_GK'] == 1, 'position'] = 'GK'
     names_and_pos_season_1.loc[names_and_pos_season_1['position_MID'] == 1, 'position'] = 'MID'
 
-    names_and_pos_season_2 = retro_data[retro_data['season'] == season_2][
+    names_and_pos_season_2 = gw_data[gw_data['season'] == season_2][
         ['name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID']].drop_duplicates()
 
     names_and_pos_season_2.loc[names_and_pos_season_2['position_DEF'] == 1, 'position'] = 'DEF'
