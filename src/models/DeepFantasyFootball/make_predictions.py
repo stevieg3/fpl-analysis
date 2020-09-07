@@ -391,8 +391,6 @@ def load_live_data():
     Load all live input data required for predictions: historical, current season, next fixture. Also creates any
     additional features.
 
-    :param previous_gw: Previous gameweek
-    :param save_file: Set to True to save current season data as parquet
     :return: DataFrame containing all required inputs for all gameweeks
     """
     # Historical FFS data

@@ -1,11 +1,12 @@
 import logging
+import unidecode
+import difflib
 
 import pandas as pd
+import numpy as np
 
-from src.models.LSTM.make_predictions import \
-    load_live_data, \
-    load_retro_data, \
-    LSTMPlayerPredictor
+from src.models.LSTM import make_predictions as old_model_make_predictions
+from src.models.DeepFantasyFootball import make_predictions as new_model_make_predictions
 from src.models.constants import \
     SEASON_ORDER_DICT
 from src.data.s3_utilities import \
@@ -15,6 +16,9 @@ from src.data.s3_utilities import \
     write_dataframe_to_s3
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
+
+
+CURRENT_SEASON_FPL = '2020-21'
 
 
 def fpl_scorer(
@@ -38,13 +42,17 @@ def fpl_scorer(
 
     :return: None. Output saved to S3
     """
+    # 1. Old model using FPL features
+    logging.info('Making predictions using FPL model')
     if live_run:
-        full_data = load_live_data(previous_gw=previous_gw, save_file=True)
+        full_data = old_model_make_predictions.load_live_data(previous_gw=previous_gw, save_file=True)
     else:
         # TODO Smarter way of finding latest file:
-        full_data = load_retro_data(current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet')
+        full_data = old_model_make_predictions.load_retro_data(
+            current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet'
+        )
 
-    lstm_pred = LSTMPlayerPredictor(
+    lstm_pred = old_model_make_predictions.LSTMPlayerPredictor(
         previous_gw=previous_gw,
         prediction_season_order=prediction_season_order,
         previous_gw_was_double_gw=previous_gw_was_double_gw
@@ -56,12 +64,45 @@ def fpl_scorer(
         player_data_list=player_data_list
     )
 
-    final_predictions = lstm_pred.format_predictions(
+    old_model_predictions = lstm_pred.format_predictions(
         player_list=player_list,
         final_predictions=unformatted_predictions,
         full_data=full_data,
         double_gw_teams=double_gw_teams
     )
+    logging.info('Made predictions using FPL model')
+    logging.info(old_model_predictions.head())
+
+    # 2. New model using FFS data
+    logging.info('Making predictions using Fantasy Football Scout model')
+    if live_run:
+        full_data = new_model_make_predictions.load_live_data()
+    else:
+        full_data = new_model_make_predictions.load_retro_data()
+
+    deep_fantasy_football = new_model_make_predictions.DeepFantasyFootball(
+        previous_gw=previous_gw,
+        prediction_season_order=prediction_season_order
+    )
+
+    player_list, player_data_list = deep_fantasy_football.prepare_data_for_lstm(full_data=full_data)
+
+    unformatted_predictions = deep_fantasy_football.make_player_predictions(
+        player_data_list=player_data_list
+    )
+
+    final_predictions = deep_fantasy_football.format_predictions(
+        player_list=player_list,
+        final_predictions=unformatted_predictions,
+        full_data=full_data,
+        double_gw_teams=[]
+    )
+    logging.info('Made predictions using Fantasy Football Scout model')
+    logging.info(final_predictions.head())
+
+    # 3. Merge predictions
+    combined = merge_model_predictions(old_model_predictions=old_model_predictions, final_predictions=final_predictions)
+    logging.info('Merged predictions from FPL model and Fantasy Football Scout model')
 
     reversed_season_order_dict = {v: k for k, v in SEASON_ORDER_DICT.items()}
     if previous_gw == 38:
@@ -69,39 +110,149 @@ def fpl_scorer(
         # Account for position changes between seasons
         # Note: Predictions are made using past position but new position needed for team selection
         make_position_changes(
-            df_with_old_positions=final_predictions,
-            season_1=reversed_season_order_dict[prediction_season_order],
-            season_2=reversed_season_order_dict[prediction_season_order+1],
+            df_with_old_positions=combined,
+            season=reversed_season_order_dict[prediction_season_order + 1],
             live_run=live_run,
             previous_gw=previous_gw
         )
         prediction_season_order += 1  # Roll over to next season
-        final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
-        final_predictions['gw'] = 1
+        combined['season'] = reversed_season_order_dict[prediction_season_order]
+        combined['gw'] = 1
     else:
-        final_predictions['season'] = reversed_season_order_dict[prediction_season_order]
-        final_predictions['gw'] = previous_gw + 1
-    final_predictions['model'] = 'lstm_v4'
+        combined['season'] = reversed_season_order_dict[prediction_season_order]
+        combined['gw'] = previous_gw + 1
 
-    logging.info(final_predictions.head())
+    logging.info('Final prediction output:')
+    logging.info(combined.head())
 
     if live_run:
         write_dataframe_to_s3(
-            df=final_predictions,
+            df=combined,
             s3_root_path=S3_BUCKET_PATH + GW_PREDICTIONS_SUFFIX,
-            partition_cols=['season', 'gw']
+            partition_cols=['season', 'gw'],
+            partition_filename_cb=lambda x: f'{x[0]}-{x[1]}.parquet'
         )
         logging.info('Saved live prediction data to S3')
     else:
         write_dataframe_to_s3(
-            df=final_predictions,
+            df=combined,
             s3_root_path=S3_BUCKET_PATH + GW_RETRO_PREDICTIONS_SUFFIX,
-            partition_cols=['season', 'gw']
+            partition_cols=['season', 'gw'],
+            partition_filename_cb=lambda x: f'{x[0]}-{x[1]}.parquet'
         )
         logging.info('Saved retro prediction data to S3')
 
 
-def make_position_changes(df_with_old_positions, season_1, season_2, live_run, previous_gw=None):
+def merge_model_predictions(old_model_predictions, final_predictions):
+    """
+    Combine predictions from FPL model and FFS model. FFS model predictions are used by default and FPL predictions are
+    used if FFS not available.
+
+    :param old_model_predictions: FPL model predictions
+    :param final_predictions: FFS model predictions
+    :return: Consolidated DataFrame of predictions
+    """
+    old_model_predictions = old_model_predictions.copy()
+    final_predictions = final_predictions.copy()
+
+    final_predictions['name_formatted'] = final_predictions['name'].str.replace(' ', '_').apply(
+        lambda string: unidecode.unidecode(string)
+    )
+    old_model_predictions['name_formatted'] = old_model_predictions['name'].str.replace(' ', '_').apply(
+        lambda string: unidecode.unidecode(string)
+    )
+
+    # Look for closest name match
+    name_matches = old_model_predictions[['name_formatted']].merge(
+        final_predictions['name_formatted'],
+        on='name_formatted',
+        how='outer',
+        indicator=True
+    )
+
+    name_matches.loc[name_matches['_merge'] == 'right_only', 'name_closest_fpl_match'] = name_matches.loc[
+        name_matches['_merge'] == 'right_only', 'name_formatted'].apply(
+        lambda x: difflib.get_close_matches(
+            x,
+            name_matches[name_matches['_merge'] == 'left_only']['name_formatted'],
+            n=1,
+            cutoff=0  # Set to 0 to prevent empty list from being returned
+        )[0]
+    )
+
+    final_predictions = final_predictions.merge(
+        name_matches,
+        on='name_formatted',
+        how='left'
+    )
+
+    final_predictions.drop(columns=['_merge'], inplace=True)
+    final_predictions['name_join_key'] = np.where(
+        final_predictions['name_closest_fpl_match'].isnull(),
+        final_predictions['name_formatted'],
+        final_predictions['name_closest_fpl_match']
+    )
+
+    assert final_predictions['name_join_key'].isnull().sum() == 0
+
+    # Align team names to both use FPL
+    team_data = pd.read_csv('data/external/team_season_data.csv')
+    ffs_team_name_to_fpl = dict(
+        zip(
+            team_data[team_data['season'] == CURRENT_SEASON_FPL]['team_name_ffs'],
+            team_data[team_data['season'] == CURRENT_SEASON_FPL]['team_name']
+        )
+    )
+    final_predictions['team_name'].replace(ffs_team_name_to_fpl, inplace=True)
+
+    # Format and merge
+    final_predictions.drop(columns=['name_closest_fpl_match'], inplace=True)
+
+    combined = old_model_predictions.merge(
+        final_predictions,
+        left_on=['name_formatted', 'team_name'],
+        right_on=['name_join_key', 'team_name'],
+        how='outer',
+        indicator=True,
+        suffixes=('_old', '_new')
+    )
+
+    players_ffs_only = combined[combined['_merge'] == 'right_only'][['name_formatted_new', 'team_name']]
+
+    logging.info(f"Player names in FFS data only: {players_ffs_only}")
+
+    # Only keep player in both sources or FPL only:
+    combined = combined[combined['_merge'] != 'right_only']
+
+    combined.rename(columns={'name_formatted_old': 'name'}, inplace=True)
+
+    for feature in [
+        'GW_plus_1', 'GW_plus_2', 'GW_plus_3', 'GW_plus_4', 'GW_plus_5', 'sum', 'position_DEF', 'position_FWD',
+        'position_GK', 'position_MID'
+    ]:
+        combined[feature] = np.where(
+            combined['sum_new'].isnull(),
+            combined[f'{feature}_old'],
+            combined[f'{feature}_new']
+        )
+
+    combined['model'] = np.where(
+        combined['sum_new'].isnull(),
+        'lstm_v4',
+        'DeepFantasyFootball_v01'
+    )
+
+    combined.sort_values('sum', ascending=False, inplace=True)
+
+    logging.info('Model used breakdown:')
+    logging.info(
+        combined[~combined['sum'].isnull()]['model'].value_counts()
+    )
+
+    return combined
+
+
+def make_position_changes(df_with_old_positions, season, live_run, previous_gw=None):
     """
     Some players change position at the start of a new season. This can lead to issues with team selection because
     predictions for GW 1 will use the previous season's position. Therefore the team selection criteria may be
@@ -111,19 +262,24 @@ def make_position_changes(df_with_old_positions, season_1, season_2, live_run, p
     a provided DataFrame.
 
     :param df_with_old_positions: DataFrame which uses positions from season_1 e.g. predictions for GW 1
-    :param season_1: First season
-    :param season_2: Consecutive season
+    :param season: New season
     :param live_run: Boolean. Live or retro predictions
     :param previous_gw: Previous GW
     :return: Modifies in-place
     """
     if live_run:
-        gw_data = load_live_data(previous_gw=previous_gw, save_file=False)
+        gw_data = old_model_make_predictions.load_live_data(previous_gw=previous_gw, save_file=False)
     else:
         # TODO Smarter way of finding latest file:
-        gw_data = load_retro_data(current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet')
+        gw_data = old_model_make_predictions.load_retro_data(
+            current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet'
+        )
 
-    names_and_pos_season_1 = gw_data[gw_data['season'] == season_1][
+    gw_data['name'] = gw_data['name'].str.replace(' ', '_').apply(
+        lambda string: unidecode.unidecode(string)
+    )
+
+    names_and_pos_season_1 = gw_data[gw_data['season'] == season][
         ['name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID']].drop_duplicates()
 
     names_and_pos_season_1.loc[names_and_pos_season_1['position_DEF'] == 1, 'position'] = 'DEF'
@@ -131,7 +287,7 @@ def make_position_changes(df_with_old_positions, season_1, season_2, live_run, p
     names_and_pos_season_1.loc[names_and_pos_season_1['position_GK'] == 1, 'position'] = 'GK'
     names_and_pos_season_1.loc[names_and_pos_season_1['position_MID'] == 1, 'position'] = 'MID'
 
-    names_and_pos_season_2 = gw_data[gw_data['season'] == season_2][
+    names_and_pos_season_2 = df_with_old_positions.copy()[
         ['name', 'position_DEF', 'position_FWD', 'position_GK', 'position_MID']].drop_duplicates()
 
     names_and_pos_season_2.loc[names_and_pos_season_2['position_DEF'] == 1, 'position'] = 'DEF'
@@ -148,11 +304,15 @@ def make_position_changes(df_with_old_positions, season_1, season_2, live_run, p
 
     position_changes = comp[comp['position_season_1'] != comp['position_season_2']]
 
-    position_changes.rename(columns={'position_season_2': 'position'}, inplace=True)
-    position_changes.drop(columns=['position_season_1'], inplace=True)
+    position_changes.rename(columns={'position_season_1': 'position'}, inplace=True)
+    position_changes.drop(columns=['position_season_2'], inplace=True)
     position_changes = pd.get_dummies(position_changes, columns=['position'])
 
-    logging.info(f"Players who changed position between {season_1} and {season_2}: {set(position_changes['name'])}")
+    logging.info(
+        f"Players who changed position in {season}: {set(position_changes['name'])}"
+    )
+
+    print(position_changes.head())
 
     for _, row in position_changes.iterrows():
         df_with_old_positions.loc[
