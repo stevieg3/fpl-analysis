@@ -22,12 +22,12 @@ __Parameters__:
 
 `live_run`: Boolean. Set to True to use FPL API to make predictions using latest data. Set to False for retrospective predictions
 
-`double_gw_teams` (_optional_): List of teams with a double gameweek in the next gameweek. Next gameweek predictions for these teams are multiplied by 2
+`double_gw_teams` (_optional_): List of teams with a double gameweek in the next gameweek. Next gameweek predictions for these teams are multiplied by 2. Only needs to be specified for FPL-based model. DeepFantasyFootball incorporates this as a feature.
 
 Current teams:
 'Manchester City', 'Liverpool', 'Arsenal', 'Wolverhampton Wanderers', 'Everton', 'Aston Villa', 'Leicester City', 
 'Manchester United', 'Southampton', 'Tottenham Hotspur', 'Chelsea', 'Burnley', 'West Ham United', 'Crystal Palace', 
-'Sheffield United', 'Watford', 'Norwich City', 'Bournemouth', 'Brighton & Hove Albion', 'Newcastle United'
+'Sheffield United', 'West Bromwich Albion', 'Leeds', 'Fulham', 'Brighton & Hove Albion', 'Newcastle United'
 
 __Run locally using gunicorn__:
 ```bash
