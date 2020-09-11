@@ -7,6 +7,7 @@ import numpy as np
 import pyarrow.parquet as pq
 from keras.models import load_model
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 
 from src.models.utils import \
     _load_model_from_pickle
@@ -39,6 +40,32 @@ MinMaxScalar used in training
 deep_fantasy_football_model = load_model("src/models/pickles/DeepFantasyFootball_v01.h5")
 """
 DeepFantasyFootball fitted model
+"""
+
+new_positions = {
+    'anthony_martial': 'FWD',
+    'pierre-emerick_aubameyang': 'MID',
+    'michail_antonio': 'FWD',
+    'marcus_rashford': 'MID',
+    'mason_greenwood': 'MID',
+    'richarlison_de andrade': 'FWD',
+    'matt_ritchie': 'MID',
+    'john_lundstram': 'MID',
+    'ben_johnson': 'DEF',
+    'william_smallbone': 'MID',
+    'fernando_luiz rosa': 'DEF',
+    'takumi_minamino': 'MID',
+    'eric_dier': 'DEF',
+    'keinan_davis': 'FWD',
+    'anthony_gordon': 'MID',
+    'kelland_watts': 'DEF',
+    'gabriel_teodoro martinelli silva': 'MID',
+    'kouassi_ryan sessegnon': 'DEF',
+    'callum_robinson': 'FWD'
+}
+"""
+Players who changed position for the 2020-21 season. Only includes players who could be scored using the 
+DeepFantasyFootball model
 """
 
 
@@ -176,8 +203,11 @@ def _load_latest_match_odds():
     logging.info("Reached OddsPortal website")
     time.sleep(1)
 
-    driver.find_element_by_xpath(SHOW_ALL_PL_MATCHES_BUTTON_XPATH).click()  # Expand odds box
-    logging.info('Expanding table of odds')
+    try:
+        driver.find_element_by_xpath(SHOW_ALL_PL_MATCHES_BUTTON_XPATH).click()  # Expand odds box
+        logging.info('Expanding table of odds')
+    except NoSuchElementException:
+        pass
 
     tbl = driver.find_element_by_xpath(TABLE_XPATH).get_attribute("outerHTML")
     logging.info('Scraped table of odds')
@@ -415,6 +445,12 @@ def load_live_data():
 
     # Add 0 minute events back into data
     ffs_data = _add_0_minute_events(combined_ffs_all_data)
+
+    # Make position changes for players who changed position in 2020-21. Re-calculate what historical points would have
+    # been for these players had they always played in this position
+    for name, pos in new_positions.items():
+        ffs_data.loc[ffs_data['name'] == name, 'position'] = pos
+    ffs_data['total_points'] = calculate_fpl_points(ffs_data)  # Re-calculate total points
 
     # Position dummies
     ffs_data = pd.get_dummies(ffs_data, columns=['position'])

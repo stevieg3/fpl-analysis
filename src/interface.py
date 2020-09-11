@@ -312,6 +312,13 @@ def make_position_changes(df_with_old_positions, season, live_run, previous_gw=N
         f"Players who changed position in {season}: {set(position_changes['name'])}"
     )
 
+    # Make sure dummy column created for all positions. Sometimes players who changed position only covers 2 positions
+    for position_col in ['position_DEF', 'position_MID', 'position_FWD']:
+        if position_col in position_changes.columns:
+            continue
+        else:
+            position_changes[position_col] = 0
+
     print(position_changes.head())
 
     for _, row in position_changes.iterrows():
