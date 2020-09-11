@@ -96,14 +96,13 @@ def load_retro_data(current_season_data_filepath):
     # Load historical
     raw_historical_df = _load_all_historical_data()
     # Remove Brendan Galloway due to unexplained gap in gameweek data
-    # TODO: Fix in generation of historical data:
     raw_historical_df = raw_historical_df[raw_historical_df['name'] != 'brendan_galloway']
     logging.info(f"Loaded historical data of shape: {raw_historical_df.shape}")
 
     # Load latest current season data
     current_season_data = pd.read_parquet(current_season_data_filepath)
 
-    # TODO Remove after project restart?
+    # Project restart (2019-20) adjustment
     current_season_data['gw'] = np.where(
         current_season_data['gw'] >= 39,
         current_season_data['gw'] - 9,
@@ -180,7 +179,6 @@ class LSTMPlayerPredictor:
         full_data.drop('season_order_gw', axis=1, inplace=True)
 
         # Get available players
-        # TODO Include logic for dealing with double gameweeks and missing fixtures
         available_players = full_data.copy()[
             (full_data['gw'] == self.previous_gw) &
             (full_data['season_order'] == self.prediction_season_order)
@@ -238,7 +236,6 @@ class LSTMPlayerPredictor:
         return player_list, player_data_list
 
     def make_player_predictions(self, player_data_list):
-        # TODO Add functionality to adjust scores of certain players e.g. by using a JSON input
         """
         Make player predictions for next 5 gameweeks using LSTM model.
 
