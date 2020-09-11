@@ -6,7 +6,7 @@ __Parameters__:
 
 `previous_gw`: Gameweek prior to the one you want to make a selection for
 
-`prediction_season_order`: Season order number (2019/20 season is 4)
+`prediction_season_order`: Season order number (2020/21 season is 5)
 
 `live_run`: Boolean. Set to True to use FPL API to make predictions using latest data. Set to False for retrospective predictions
 

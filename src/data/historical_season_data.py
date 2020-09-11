@@ -12,7 +12,7 @@ from src.data.constants import \
     VALUE_MULTIPLE
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
-os.chdir('/Users/stevengeorge/Documents/Github/fpl-analysis')  # TODO Find better way of setting root when using main()
+os.chdir('/Users/stevengeorge/Documents/Github/fpl-analysis')
 
 
 ########################################################################################################################

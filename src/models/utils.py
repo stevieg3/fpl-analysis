@@ -2,15 +2,13 @@ import pandas as pd
 import numpy as np
 import logging
 import pickle
-import time
 
 from src.data.live_season_data import GetFPLData
-from src.features.custom_transformers import TimeSeriesFeatures
 from src.models.constants import \
     FPL_AVAILABLE_FEATURES_19_20, \
     SEASON_ORDER_DICT, \
     KNOWN_FEATURES_NEXT_GW, \
-    KICKOFF_MONTH_FEATURES, TIME_SERIES_FEATURES_19_20
+    KICKOFF_MONTH_FEATURES
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
@@ -116,58 +114,6 @@ def _load_model_from_pickle(model_filepath):
     """
     model = pickle.load(open(model_filepath, 'rb'))
     return model
-
-
-def _append_time_series_features(
-        dataframe,
-        ts_halflife=4,
-        ts_max_lag=4,
-        ts_max_diff=4,
-        ts_columns=TIME_SERIES_FEATURES_19_20
-):
-    """
-    Append time series features based on `ts_columns`
-
-    :param dataframe: Pandas DataFrame containing player-gw data
-    :param ts_halflife: `halflife` for `TimeSeriesFeatures` instance
-    :param ts_max_lag: `max_lag` for `TimeSeriesFeatures` instance
-    :param ts_max_diff: `max_diff` for `TimeSeriesFeatures` instance
-    :param ts_columns: `columns` for `TimeSeriesFeatures` instance
-
-    :return: Pandas DataFrame with additional time series features
-    """
-    # Create ID column for each name to allow time series features to be generated
-    dataframe.drop('ID', axis=1, inplace=True)
-    id_df = dataframe.groupby(['name']).count().reset_index()[['name']]
-    id_df['ID'] = id_df.index + 1
-
-    dataframe = dataframe.merge(id_df, how='left', on=['name'])
-
-    # Generate time series features
-    dataframe.sort_values(['name', 'season_order', 'gw'], inplace=True)
-
-    for col in TIME_SERIES_FEATURES_19_20:
-        dataframe[col] = pd.to_numeric(dataframe[col], errors='coerce')
-
-    ts_feature_generator = TimeSeriesFeatures(
-        halflife=ts_halflife,
-        max_lag=ts_max_lag,
-        max_diff=ts_max_diff,
-        columns=ts_columns
-    )
-
-    logging.info(f"Generating time series features...")
-
-    start = time.time()
-
-    fpl_data_all_seasons_with_ts = ts_feature_generator.fit_transform(dataframe)
-    fpl_data_all_seasons_with_ts.drop('ID', axis=1, inplace=True)
-
-    end = time.time()
-
-    logging.info(f"Finished generating time series features (Duration: {np.round(end-start, 2)}s)")
-
-    return fpl_data_all_seasons_with_ts
 
 
 def round_down_to_nearest_10th(num):
