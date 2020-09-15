@@ -12,6 +12,8 @@ from src.models.constants import \
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
+CURRENT_SEASON = '2020-21'
+
 
 def _load_all_historical_data(available_features=FPL_AVAILABLE_FEATURES_19_20):
     """
@@ -67,7 +69,7 @@ def _load_current_season_data(previous_gw, save_file=False):
     :param save_file: If True save as parquet file
     :return: Pandas DataFrame
     """
-    get_fpl_data = GetFPLData(season='2019-20')
+    get_fpl_data = GetFPLData(season=CURRENT_SEASON)
     current_gw_data = get_fpl_data.get_all_gameweek_data_from_api()
 
     if save_file:
@@ -89,7 +91,7 @@ def _load_next_fixture_data(next_gw):
     :param next_gw: Next Gameweek (must be a Gameweek which hasn't occurred yet otherwise will not be present in API)
     :return: Pandas DataFame
     """
-    get_fpl_data = GetFPLData(season='2020-21')
+    get_fpl_data = GetFPLData(season=CURRENT_SEASON)
     upcoming_fixtures = get_fpl_data.get_all_fixture_data_from_api()
 
     next_fixture_data = upcoming_fixtures[upcoming_fixtures['gw'] == next_gw]

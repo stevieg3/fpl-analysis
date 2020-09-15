@@ -28,7 +28,8 @@ from src.models.DeepFantasyFootball.constants import \
     SHOW_ALL_PL_MATCHES_BUTTON_XPATH, \
     TABLE_XPATH, \
     ODDS_TABLE_COLUMN_NAMES, \
-    CURRENT_SEASON
+    CURRENT_SEASON, \
+    ODDS_TABLE_COLUMN_NAMES_COMPLETED_MATCHES
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
@@ -125,6 +126,8 @@ def _load_latest_ffs_season_data(season):
     ).str.lower()
 
     latest_ffs_all_data['total_points'] = calculate_fpl_points(latest_ffs_all_data)
+
+    latest_ffs_all_data['season'] = season
 
     return latest_ffs_all_data
 
@@ -243,12 +246,74 @@ def _load_latest_match_odds():
     return odds_table
 
 
+def _load_match_odds_for_completed_matches_in_current_season():
+    logging.info('Fetching odds for completed matches in current season from OddsPortal')
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--start-maximized")
+    chrome_options.add_argument("--headless")
+
+    driver = webdriver.Chrome(
+        CHROMEDRIVER_PATH,
+        options=chrome_options,
+    )
+    logging.info("Driver created")
+
+    driver.implicitly_wait(10)
+
+    season_odds_df = pd.DataFrame()
+
+    for page_number in range(1, 9):
+        try:
+            driver.get(f'https://www.oddsportal.com/soccer/england/premier-league/results/#/page/{page_number}/')
+            time.sleep(1)
+
+            tbl = driver.find_element_by_xpath(TABLE_XPATH).get_attribute("outerHTML")
+            odds_table = pd.read_html(tbl, header=0)[0]
+
+            odds_table.columns = ODDS_TABLE_COLUMN_NAMES_COMPLETED_MATCHES
+            odds_table.dropna(axis=0, how='all', inplace=True)
+
+            # Keep matches only (some rows are repeats of the header)
+            odds_table = odds_table[odds_table['Match'].str.contains('-')]
+
+            for odd_col in ['1', 'X', '2']:
+                odds_table[odd_col].replace('-', np.nan, inplace=True)
+                odds_table.loc[
+                    ~odds_table[odd_col].isnull(),
+                    odd_col
+                ] = odds_table.loc[
+                    ~odds_table[odd_col].isnull(),
+                    odd_col
+                ].str.split('/').apply(lambda x: float(x[0]) / float(x[1]))
+
+            odds_table['home_team'] = odds_table['Match'].str.split(' - ').apply(lambda x: x[0])
+            odds_table['away_team'] = odds_table['Match'].str.split(' - ').apply(lambda x: x[1])
+
+            logging.info(f'Scraped odds from page {page_number}')
+            logging.info(odds_table.shape)
+
+            season_odds_df = season_odds_df.append(odds_table)
+
+        except:
+            logging.info(f'No odds on page {page_number}')
+            continue
+
+        season_odds_df = season_odds_df[['1', 'X', '2', 'home_team', 'away_team']]
+
+        driver.close()
+
+        return season_odds_df
+
+
 def load_live_fixture_and_odds_data():
     # Fixtures
     fixtures = _load_season_fixtures()
 
     # Odds
     odds_table = _load_latest_match_odds()
+    completed_match_odds_current_season = _load_match_odds_for_completed_matches_in_current_season()
+    odds_table = odds_table.append(completed_match_odds_current_season)
 
     # Team data
     logging.info('Loading team data')
@@ -437,11 +502,11 @@ def load_live_data():
     # Latest FFS data
     logging.info('Loading latest FFS data')
     latest_ffs_all_data = _load_latest_ffs_season_data(season=CURRENT_SEASON)
-    logging.info(f'Loaded latest FFS data of shape: {latest_ffs_all_data}')
+    logging.info(f'Loaded latest FFS data of shape: {latest_ffs_all_data.shape}')
 
     # Append latest to historical
     combined_ffs_all_data = historical_ffs_all_data.append(latest_ffs_all_data)
-    logging.info(f'Combined FFS data shape: {combined_ffs_all_data}')
+    logging.info(f'Combined FFS data shape: {combined_ffs_all_data.shape}')
 
     # Add 0 minute events back into data
     ffs_data = _add_0_minute_events(combined_ffs_all_data)

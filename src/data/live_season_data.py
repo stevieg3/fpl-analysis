@@ -91,6 +91,7 @@ class GetFPLData:
             gw_dataframe = gw_dataframe.append(player_gw_data)
 
         gw_dataframe.rename(columns={'round': 'gw'}, inplace=True)
+        gw_dataframe['gw'] = gw_dataframe['gw'].astype(int)
 
         # Change value so that it aligns with website
         gw_dataframe['value'] = gw_dataframe['value'] / VALUE_MULTIPLE

@@ -231,7 +231,7 @@ Columns to include in final predictions output
 
 # LSTM CONSTANTS
 
-COLUMNS_TO_DROP_FOR_TRAINING = ['name', 'season', 'season_order', 'team_name', 'team_name_opponent']
+COLUMNS_TO_DROP_FOR_TRAINING = ['name', 'season', 'season_order', 'team_name', 'team_name_opponent', 'team_name_ffs']
 
 
 SELL_ON_TAX = 0.5

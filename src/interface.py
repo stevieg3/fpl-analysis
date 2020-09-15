@@ -52,6 +52,33 @@ def fpl_scorer(
             current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet'
         )
 
+    # Find teams who did not play in the previous gameweek
+    teams_not_in_previous_gw = []
+    if previous_gw != 38:
+        teams_in_previous_gw = set(
+            full_data[
+                (full_data['gw'] == previous_gw) &
+                (full_data['season_order'] == prediction_season_order)
+            ]['team_name']
+        )
+        teams_in_next_gw = set(
+            full_data[
+                (full_data['gw'] == previous_gw + 1) &
+                (full_data['season_order'] == prediction_season_order)
+                ]['team_name']
+        )
+        teams_not_in_previous_gw = list(teams_in_next_gw - teams_in_previous_gw)
+        logging.info(f'Teams not in previous gameweek: {teams_not_in_previous_gw}')
+
+    if len(teams_not_in_previous_gw) > 0:
+        _include_players_missing_in_previous_gameweek(
+            full_data,
+            previous_gw,
+            prediction_season_order,
+            teams_not_in_previous_gw,
+            use_fantasy_football_scout_team_names=False
+        )
+
     lstm_pred = old_model_make_predictions.LSTMPlayerPredictor(
         previous_gw=previous_gw,
         prediction_season_order=prediction_season_order,
@@ -79,6 +106,16 @@ def fpl_scorer(
         full_data = new_model_make_predictions.load_live_data()
     else:
         full_data = new_model_make_predictions.load_retro_data()
+
+    # Adjustment for missing teams
+    if len(teams_not_in_previous_gw) > 0:
+        _include_players_missing_in_previous_gameweek(
+            full_data,
+            previous_gw,
+            prediction_season_order,
+            teams_not_in_previous_gw,
+            use_fantasy_football_scout_team_names=True
+        )
 
     deep_fantasy_football = new_model_make_predictions.DeepFantasyFootball(
         previous_gw=previous_gw,
@@ -326,3 +363,57 @@ def make_position_changes(df_with_old_positions, season, live_run, previous_gw=N
             (df_with_old_positions['name'] == row['name']),
             ['position_DEF', 'position_FWD', 'position_MID']
         ] = row['position_DEF'], row['position_FWD'], row['position_MID']
+
+
+def _include_players_missing_in_previous_gameweek(
+        full_data,
+        previous_gw,
+        prediction_season_order,
+        teams_not_in_previous_gw,
+        use_fantasy_football_scout_team_names=False
+):
+    """
+    For teams who did not play in the previous gameweek we use the gameweek before to make predictions. We do this by
+    changing the gameweek from (previous_gameweek - 1) to previous_gameweek for these teams. Note whilst we may have
+    next fixture data for these teams (e.g. odds) this method ignores it.
+
+    :param full_data: DataFrame of player data
+    :param previous_gw: Gameweek prior to the one you want to make a selection for
+    :param prediction_season_order: Season order number (2019/20 season is 4). Season order number for the previous_gw
+    i.e. for gameweek 1 predictions you will need to provide the season order number for the previous season
+    :param teams_not_in_previous_gw: List of teams (FPL team names) who were not in the previous gameweek fixtures
+    :param use_fantasy_football_scout_team_names: Boolean. Set to True to if applying function to fantasy football scout
+    data
+
+    :return: None. Modifies in-place
+    """
+
+    if use_fantasy_football_scout_team_names:
+        team_data_names = pd.read_csv('data/external/team_season_data.csv')
+        fpl_team_name_to_ffs = dict(
+            zip(
+                team_data_names[team_data_names['season'] == CURRENT_SEASON_FPL]['team_name'],
+                team_data_names[team_data_names['season'] == CURRENT_SEASON_FPL]['team_name_ffs']
+            )
+        )
+        teams_not_in_previous_gw = [
+            fpl_team_name_to_ffs[fpl_team_name] for fpl_team_name in teams_not_in_previous_gw
+        ]
+
+    for missing_team in teams_not_in_previous_gw:
+        # TODO Remove previous_gw == 1 logic. Safe to assume this won't happen again
+        if previous_gw == 1:
+            full_data.loc[
+                (full_data['gw'] == 38) &
+                (full_data['season_order'] == prediction_season_order - 1) &
+                (full_data['team_name'] == missing_team) &
+                (~full_data['name'].isin(['jeff_hendrick', 'joe_hart'])),  # Players who transferred to new PL team
+                ['gw', 'season_order']
+            ] = previous_gw, prediction_season_order
+        else:
+            full_data.loc[
+                (full_data['gw'] == previous_gw - 1) &
+                (full_data['season_order'] == prediction_season_order - 1) &
+                (full_data['team_name'] == missing_team),
+                'gw'
+            ] = previous_gw

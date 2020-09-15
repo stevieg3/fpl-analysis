@@ -47,7 +47,7 @@ def load_live_data(previous_gw, save_file=False):
         logging.info(f"Loading current season data (up to gw {previous_gw})...")
         current_gw_df = _load_current_season_data(previous_gw=previous_gw, save_file=save_file)
         logging.info(f"Loaded current season data (up to gw {previous_gw}) of shape: {current_gw_df.shape}")
-        assert len(set(current_gw_df.columns) - set(raw_historical_df.columns)) == 0
+        assert len(set(current_gw_df.columns.drop('team_name_ffs')) - set(raw_historical_df.columns)) == 0
 
     # Load next
     if previous_gw == 38:

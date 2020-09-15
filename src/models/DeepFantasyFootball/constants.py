@@ -148,7 +148,12 @@ XPath for table of odds
 
 ODDS_TABLE_COLUMN_NAMES = ['KO', 'Match', 'Match_dup', '1', 'X', '2', 'num_available_bookmakers']
 """
-Column names for data in odds table
+Column names for data in odds table (upcoming fixtures)
+"""
+
+ODDS_TABLE_COLUMN_NAMES_COMPLETED_MATCHES = ['KO', 'Match', 'Result', '1', 'X', '2', 'num_available_bookmakers']
+"""
+Column names for data in odds table (completed fixtures)
 """
 
 FIXTURE_FEATURE_AGGREGATIONS = {
