@@ -100,7 +100,8 @@ FFS_ABBREVIATION_TO_FULL = {
     'RDG': 'Reading',
     'SHU': 'Sheffield United',
     'SUN': 'Sunderland',
-    'WIG': 'Wigan Athletic'
+    'WIG': 'Wigan Athletic',
+    'LEE': 'Leeds'
 }
 """
 FFS team abbreviation to full name

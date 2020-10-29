@@ -51,6 +51,7 @@ def fpl_scorer(
         full_data = old_model_make_predictions.load_retro_data(
             current_season_data_filepath='data/gw_player_data/gw_37_player_data.parquet'
         )
+        full_data['team_name_ffs'] = ''
 
     # Find teams who did not play in the previous gameweek
     teams_not_in_previous_gw = []

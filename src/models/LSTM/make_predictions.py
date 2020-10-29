@@ -187,8 +187,12 @@ class LSTMPlayerPredictor:
         if self.previous_gw_was_double_gw:
             # Double GW players will be listed twice
             available_players.drop_duplicates(inplace=True)
-        assert available_players['name'].nunique() == len(available_players), \
-            'Duplicate names found in players from last GW'
+        try:
+            assert available_players['name'].nunique() == len(available_players), \
+                'Duplicate names found in players from last GW'
+        except AssertionError:
+            logging.info(available_players[available_players['name'].duplicated()]['name'])
+            raise
         available_players['available_for_selection'] = 1
 
         full_data = full_data.merge(available_players, how='left', on='name')
