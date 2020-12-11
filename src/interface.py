@@ -199,6 +199,27 @@ def merge_model_predictions(old_model_predictions, final_predictions):
     old_model_predictions['name_formatted'] = old_model_predictions['name'].str.replace(' ', '_').apply(
         lambda string: unidecode.unidecode(string)
     )
+    # TODO Short-term fix - need better name matching system
+    final_predictions['name_formatted'] = np.where(
+        final_predictions['name_formatted'] == 'diogo_jose_teixeira_da_silva',
+        'diogo_jota',
+        final_predictions['name_formatted']
+    )
+    final_predictions['name_formatted'] = np.where(
+        final_predictions['name_formatted'] == 'roberto_firmino_barbosa_de_oliveira',
+        'roberto_firmino',
+        final_predictions['name_formatted']
+    )
+    final_predictions['name_formatted'] = np.where(
+        final_predictions['name_formatted'] == 'nelson_semedo',
+        'nelson_cabral_semedo',
+        final_predictions['name_formatted']
+    )
+    final_predictions['name_formatted'] = np.where(
+        final_predictions['name_formatted'] == 'daniel_podence',
+        'daniel_castelo_podence',
+        final_predictions['name_formatted']
+    )
 
     # Look for closest name match
     name_matches = old_model_predictions[['name_formatted']].merge(
@@ -414,7 +435,7 @@ def _include_players_missing_in_previous_gameweek(
         else:
             full_data.loc[
                 (full_data['gw'] == previous_gw - 1) &
-                (full_data['season_order'] == prediction_season_order - 1) &
+                (full_data['season_order'] == prediction_season_order) &
                 (full_data['team_name'] == missing_team),
                 'gw'
             ] = previous_gw
