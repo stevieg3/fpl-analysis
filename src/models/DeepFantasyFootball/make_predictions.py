@@ -33,12 +33,12 @@ from src.models.DeepFantasyFootball.constants import \
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
-mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_DeepFantasyFootball_v01.pickle')
+mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_DeepFantasyFootball_v02.pickle')
 """
 MinMaxScalar used in training
 """
 
-deep_fantasy_football_model = load_model("src/models/pickles/DeepFantasyFootball_v01.h5")
+deep_fantasy_football_model = load_model("src/models/pickles/DeepFantasyFootball_v02.h5")
 """
 DeepFantasyFootball fitted model
 """

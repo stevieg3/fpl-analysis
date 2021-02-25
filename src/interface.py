@@ -298,7 +298,7 @@ def merge_model_predictions(old_model_predictions, final_predictions):
     combined['model'] = np.where(
         combined['sum_new'].isnull(),
         'lstm_v4',
-        'DeepFantasyFootball_v01'
+        'DeepFantasyFootball_v02'
     )
 
     combined.sort_values('sum', ascending=False, inplace=True)
