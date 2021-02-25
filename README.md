@@ -24,6 +24,8 @@ __Parameters__:
 
 `double_gw_teams` (_optional_): List of teams with a double gameweek in the next gameweek. Next gameweek predictions for these teams are multiplied by 2. Only needs to be specified for FPL-based model. DeepFantasyFootball incorporates this as a feature.
 
+`previous_gw_was_double_gw` (_optional_): Set to True if previous gameweeek was a double gameweek
+
 Current teams:
 'Manchester City', 'Liverpool', 'Arsenal', 'Wolverhampton Wanderers', 'Everton', 'Aston Villa', 'Leicester City', 
 'Manchester United', 'Southampton', 'Tottenham Hotspur', 'Chelsea', 'Burnley', 'West Ham United', 'Crystal Palace', 
