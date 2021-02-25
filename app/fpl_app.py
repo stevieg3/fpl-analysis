@@ -11,8 +11,8 @@ CURRENT_SEASON_TEAMS = [
     'Wolverhampton Wanderers', 'Everton', 'Aston Villa',
     'Leicester City', 'Manchester United', 'Southampton',
     'Tottenham Hotspur', 'Chelsea', 'Burnley', 'West Ham United',
-    'Crystal Palace', 'Sheffield United', 'Watford', 'Norwich City',
-    'Bournemouth', 'Brighton & Hove Albion', 'Newcastle United'
+    'Crystal Palace', 'Sheffield United', 'Brighton & Hove Albion',
+    'Newcastle United', 'Leeds', 'West Bromwich Albion', 'Fulham'
 ]
 
 NON_OPTIONAL_PAYLOAD_PARAMS = ['previous_gw', 'prediction_season_order', 'live_run']
