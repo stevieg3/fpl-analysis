@@ -10,7 +10,7 @@ Flask==1.1.1
 gunicorn==19.9.0
 s3fs==0.4.0
 shap==0.35.0
-jupyterlab==2.0.1
+jupyterlab==2.2.10
 matplotlib==3.1.1
 seaborn==0.10.0
 hyperopt==0.2.4
