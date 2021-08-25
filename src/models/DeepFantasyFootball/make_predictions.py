@@ -33,39 +33,26 @@ from src.models.DeepFantasyFootball.constants import \
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
-mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_DeepFantasyFootball_v02.pickle')
+mms = _load_model_from_pickle('src/models/pickles/min_max_scalar_DeepFantasyFootball_v01.pickle')
 """
 MinMaxScalar used in training
 """
 
-deep_fantasy_football_model = load_model("src/models/pickles/DeepFantasyFootball_v02.h5")
+deep_fantasy_football_model = load_model("src/models/pickles/DeepFantasyFootball_v01.h5")
 """
 DeepFantasyFootball fitted model
 """
 
 new_positions = {
-    'anthony_martial': 'FWD',
-    'pierre-emerick_aubameyang': 'MID',
-    'michail_antonio': 'FWD',
-    'marcus_rashford': 'MID',
-    'mason_greenwood': 'MID',
-    'richarlison_de andrade': 'FWD',
-    'matt_ritchie': 'MID',
-    'john_lundstram': 'MID',
-    'ben_johnson': 'DEF',
-    'william_smallbone': 'MID',
-    'fernando_luiz rosa': 'DEF',
-    'takumi_minamino': 'MID',
-    'eric_dier': 'DEF',
-    'keinan_davis': 'FWD',
-    'anthony_gordon': 'MID',
-    'kelland_watts': 'DEF',
-    'gabriel_teodoro martinelli silva': 'MID',
-    'kouassi_ryan sessegnon': 'DEF',
-    'callum_robinson': 'FWD'
+    'matt_ritchie': 'DEF',
+    'pierre-emerick_aubameyang': 'FWD',
+    'stuart_dallas': 'MID',
+    'cheikhou_kouyate': 'DEF',
+    'ainsley_maitland-niles': 'MID',
+    'allan_saint-maximin': 'FWD'
 }
 """
-Players who changed position for the 2020-21 season. Only includes players who could be scored using the 
+Players who changed position for the 2021-22 season. Only includes players who could be scored using the 
 DeepFantasyFootball model
 """
 
@@ -491,7 +478,7 @@ def load_live_data():
     # Historical FFS data
     logging.info('Loading historical FFS data')
     historical_ffs_all_data = pq.read_table(
-        f"s3://fantasy-football-scout/processed/fantasy_football_scout_final_features_and_total_points.parquet",
+        f"s3://fantasy-football-scout/processed/fantasy_football_scout_final_features_and_total_points_UpTo2021.parquet",
         filesystem=s3_filesystem
     ).to_pandas()
 
@@ -561,7 +548,7 @@ def load_retro_data():
     """
 
     ffs_all_data = pq.read_table(
-        f"s3://fantasy-football-scout/processed/fantasy_football_scout_final_features_and_total_points.parquet",
+        f"s3://fantasy-football-scout/processed/fantasy_football_scout_final_features_and_total_points_UpTo2021.parquet",
         filesystem=s3_filesystem
     ).to_pandas()
 

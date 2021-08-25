@@ -49,11 +49,11 @@ FINAL_FEATURES = [
     'next_gameweek_double_gameweek',
     'next_gameweek_draw_odds',
     'next_gameweek_lose_odds',
-    # 'next_gameweek_number_of_home_matches',
+    'next_gameweek_number_of_home_matches',
     'next_gameweek_number_of_promoted_side_opponent',
     'next_gameweek_number_of_top_6_last_season_opponent',
     'next_gameweek_win_odds',
-    # 'number_of_home_matches',
+    'number_of_home_matches',
     'number_of_top_6_last_season_opponent',
     'position_DEF',
     'position_FWD',
@@ -117,7 +117,7 @@ JOINING_KEYS = ['Name', 'Team', 'position', 'full_name', 'gw']
 Joining keys for merging the final feature tables together
 """
 
-CURRENT_SEASON = '2020-2021'
+CURRENT_SEASON = '2021-2022'
 """
 Season to load latest FFS data for
 """

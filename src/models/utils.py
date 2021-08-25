@@ -12,7 +12,7 @@ from src.models.constants import \
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
-CURRENT_SEASON = '2020-21'
+CURRENT_SEASON = '2021-22'
 
 
 def _load_all_historical_data(available_features=FPL_AVAILABLE_FEATURES_19_20):
