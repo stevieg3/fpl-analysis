@@ -98,18 +98,6 @@ def fpl_scorer(
         full_data=full_data,
         double_gw_teams=double_gw_teams
     )
-    # TODO Remove this temporary hack
-    players_to_insert = pd.DataFrame(
-        [
-            (-100, -100, -100, -100, -100, -500, 'konstantinos_tsimikas', 1, 0, 0, 0, 'Liverpool', 4.2),
-            (-100, -100, -100, -100, -100, -500, 'vladimir_coufal', 1, 0, 0, 0, 'West Ham United', 5.0)
-        ],
-        columns=[
-            'GW_plus_1', 'GW_plus_2', 'GW_plus_3', 'GW_plus_4', 'GW_plus_5', 'sum', 'name', 'position_DEF',
-            'position_FWD', 'position_GK', 'position_MID', 'team_name', 'next_match_value'
-        ]
-    )
-    old_model_predictions = pd.concat([old_model_predictions, players_to_insert], axis=0, sort=False, ignore_index=True)
 
     logging.info('Made predictions using FPL model')
     logging.info(old_model_predictions.head())
