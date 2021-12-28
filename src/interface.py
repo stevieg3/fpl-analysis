@@ -18,7 +18,7 @@ from src.data.s3_utilities import \
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
 
-CURRENT_SEASON_FPL = '2020-21'
+CURRENT_SEASON_FPL = '2021-22'
 
 
 def fpl_scorer(
